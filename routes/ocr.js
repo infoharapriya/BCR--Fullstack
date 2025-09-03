@@ -1,23 +1,18 @@
 import express from "express";
 import multer from "multer";
 import fetch from "node-fetch";
+import FormData from "form-data";
 import auth from "../middleware/auth.js";
 import OCRresult from "../models/OCRresult.js";
+import dotenv from dotenv;
+dotenv.config();
+
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
 function extractFields(text) {
-  const fields = {
-    name: "",
-    designation: "",
-    company: "",
-    number: "",
-    email: "",
-    site: "",
-    address: "",
-  };
-
+  const fields = { name: "", designation: "", company: "", number: "", email: "", site: "", address: "" };
   const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
 
   // email
@@ -38,24 +33,15 @@ function extractFields(text) {
   if (s) fields.site = s;
 
   // designation
-  const desigK = [
-    "director", "manager", "ceo", "cto", "cfo", "founder",
-    "engineer", "marketing", "owner", "sales", "lead", "consultant",
-  ];
+  const desigK = ["director","manager","ceo","cto","cfo","founder","engineer","marketing","owner","sales","lead","consultant"];
   const d = lines.find(l => desigK.some(k => l.toLowerCase().includes(k)));
   if (d) fields.designation = d;
 
-  // company (all caps line)
-  const c = lines.find(
-    l =>
-      l === l.toUpperCase() &&
-      !l.includes("@") &&
-      !/www\.|http/i.test(l) &&
-      l.length > 2
-  );
+  // company (all caps)
+  const c = lines.find(l => l === l.toUpperCase() && !l.includes("@") && !/www\.|http/i.test(l) && l.length > 2);
   if (c) fields.company = c;
 
-  // name (two capitalized words)
+  // name
   const n = lines.find(l => {
     if (l === fields.company || l === fields.designation) return false;
     if (/@|www\.|http/.test(l)) return false;
@@ -66,20 +52,12 @@ function extractFields(text) {
 
   // address (bottom line with numbers/commas)
   const rev = [...lines].reverse();
-  const a = rev.find(
-    l =>
-      l.length > 12 &&
-      /[,0-9]/.test(l) &&
-      !/@|www\.|http/.test(l)
-  );
+  const a = rev.find(l => l.length > 12 && /[,0-9]/.test(l) && !/@|www\.|http/.test(l));
   if (a) fields.address = a;
 
   return fields;
 }
 
-/**
- * OCR via OCR.Space API
- */
 router.post("/scan", auth(), upload.single("image"), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: "No file uploaded" });
@@ -87,26 +65,32 @@ router.post("/scan", auth(), upload.single("image"), async (req, res) => {
 
   try {
     const formData = new FormData();
-    formData.append("apikey", process.env.OCR_SPACE_API_KEY); // ✅ Use env variable
+    formData.append("apikey", process.env.FREE_OCR_SPACE_API_KEY);
     formData.append("language", "eng");
-    formData.append("file", req.file.buffer, req.file.originalname);
+    formData.append("isOverlayRequired", "false");
+    formData.append("file", req.file.buffer, { filename: req.file.originalname });
 
     const response = await fetch("https://api.ocr.space/parse/image", {
       method: "POST",
       body: formData,
+      headers: formData.getHeaders(),
     });
 
     const result = await response.json();
-    const text = result?.ParsedResults?.[0]?.ParsedText || "";
+    console.log("OCR API result:", JSON.stringify(result, null, 2));
 
-    const fields = extractFields(text);
-    res.json({ raw: text, fields });
+    if (!result.ParsedResults) {
+      return res.status(500).json({ message: "OCR failed", error: result });
+    }
+
+    const text = result.ParsedResults[0].ParsedText || "";
+    res.json({ raw: text, fields: extractFields(text) });
+
   } catch (e) {
     console.error("OCR API failed:", e);
     res.status(500).json({ message: "OCR failed", error: e.message });
   }
 });
-
 
 
 /**
