@@ -1,6 +1,7 @@
 import express from "express";
 import multer from "multer";
-import tesseract from "node-tesseract-ocr";
+// import tesseract from "node-tesseract-ocr";
+import { createWorker } from "tesseract.js";
 import auth from "../middleware/auth.js";
 import OCRresult from "../models/OCRresult.js";
 
@@ -81,9 +82,10 @@ router.post("/scan", auth(), upload.single("image"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
 
-    const text = await tesseract.recognize(req.file.buffer, { lang: "eng" });
-    const fields = extractFields(text);
+    const worker = await createWorker("eng");
+    const { data: { text } } = await worker.recognize(req.file.buffer);
 
+    const fields = extractFields(text);
     res.json({ raw: text, fields });
   } catch (e) {
     console.error("OCR failed:", e);
