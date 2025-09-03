@@ -1,22 +1,24 @@
-const express = require("express");
-const multer = require("multer");
-const fs = require("fs");
-const Jimp = require("jimp");
-const {
+import express from "express";
+import multer from "multer";
+import fs from "fs";
+import Jimp from "jimp";
+import {
   MultiFormatReader,
   BarcodeFormat,
   DecodeHintType,
   RGBLuminanceSource,
   BinaryBitmap,
   HybridBinarizer,
-} = require("@zxing/library");
-const auth = require("../middleware/auth");
-const router = express.Router();
+} from "@zxing/library";
+import auth from "../middleware/auth.js";
 
+const router = express.Router();
 const upload = multer({ dest: "uploads/" });
 
 router.post("/qr-upload", auth(), upload.single("qrImage"), async (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'No file "qrImage"' });
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file "qrImage"' });
+  }
 
   try {
     const image = await Jimp.read(req.file.path);
@@ -44,4 +46,4 @@ router.post("/qr-upload", auth(), upload.single("qrImage"), async (req, res) => 
   }
 });
 
-module.exports = router;
+export default router;

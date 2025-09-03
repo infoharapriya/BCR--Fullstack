@@ -1,8 +1,8 @@
-const express = require("express");
-const multer = require("multer");
-const tesseract = require("node-tesseract-ocr");
-const auth = require("../middleware/auth");
-const OCRresult = require("../models/OCRresult");
+import express from "express";
+import multer from "multer";
+import tesseract from "node-tesseract-ocr";
+import auth from "../middleware/auth.js";
+import OCRresult from "../models/OCRresult.js";
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -47,7 +47,12 @@ function extractFields(text) {
   if (d) fields.designation = d;
 
   // company (first all caps line not email/site)
-  const c = lines.find(l => l === l.toUpperCase() && !l.includes("@") && !/www\.|http/i.test(l) && l.length > 2);
+  const c = lines.find(
+    l => l === l.toUpperCase() &&
+    !l.includes("@") &&
+    !/www\.|http/i.test(l) &&
+    l.length > 2
+  );
   if (c) fields.company = c;
 
   // name (two capitalized words)
@@ -61,7 +66,11 @@ function extractFields(text) {
 
   // address (bottom area, with digits/commas)
   const rev = [...lines].reverse();
-  const a = rev.find(l => l.length > 12 && /[,0-9]/.test(l) && !/@|www\.|http/.test(l));
+  const a = rev.find(l =>
+    l.length > 12 &&
+    /[,0-9]/.test(l) &&
+    !/@|www\.|http/.test(l)
+  );
   if (a) fields.address = a;
 
   return fields;
@@ -188,4 +197,4 @@ router.delete("/delete/:id", auth(), async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

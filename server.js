@@ -1,41 +1,51 @@
-const express = require("express");
-const cors = require("cors");
-const mongoose = require("mongoose");
-const path = require("path");
-const dotenv = require("dotenv");
+import express from "express";
+import cors from "cors";
+import mongoose from "mongoose";
+import path from "path";
+import dotenv from "dotenv";
+
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ⭐ Allow all origins in production (or keep CLIENT_URL if you want strict)
-app.use(cors({
-  origin: process.env.CLIENT_URL || "*",
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL || "*",
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,
+  })
+);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Mongo
-mongoose.connect(process.env.MONGO_URI, {})
+mongoose
+  .connect(process.env.MONGO_URI, {})
   .then(() => console.log("✅ MongoDB connected"))
-  .catch(err => console.error("❌ MongoDB error", err));
+  .catch((err) => console.error("❌ MongoDB error", err));
 
-// Routes
-app.use("/api/auth", require("./routes/auth"));
-app.use("/api/events", require("./routes/events"));
-app.use("/api/ocr", require("./routes/ocr"));
-app.use("/api/qr", require("./routes/qr"));
-app.use("/api/event", require("./routes/event"));
+// Routes (ESM syntax)
+import authRoutes from "./routes/auth.js";
+import eventsRoutes from "./routes/events.js";
+import ocrRoutes from "./routes/ocr.js";
+import qrRoutes from "./routes/qr.js";
+import eventRoutes from "./routes/event.js";
+
+app.use("/api/auth", authRoutes);
+app.use("/api/events", eventsRoutes);
+app.use("/api/ocr", ocrRoutes);
+app.use("/api/qr", qrRoutes);
+app.use("/api/event", eventRoutes);
 
 // ⭐ Serve React frontend (AFTER API routes)
-const __dirname = path.resolve(); // 👈 Move this here
-app.use(express.static(path.join(__dirname, "build"))); // 👈 remove "server/"
+const __dirname = path.resolve();
+app.use(express.static(path.join(__dirname, "build")));
 
 app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "build", "index.html")); // 👈 remove "server/"
+  res.sendFile(path.join(__dirname, "build", "index.html"));
 });
 
 // Start server

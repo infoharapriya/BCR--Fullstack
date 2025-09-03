@@ -1,7 +1,14 @@
-const mongoose = require("mongoose");
+// models/Event.js (ESM)
 
-const eventSchema = new mongoose.Schema({
-  name: { type: String, unique: true, required: true },
-}, { timestamps: true });
+import mongoose from "mongoose";
 
-module.exports = mongoose.model("Event", eventSchema);
+const eventSchema = new mongoose.Schema(
+  {
+    name: { type: String, unique: true, required: true },
+  },
+  { timestamps: true }
+);
+
+const Event = mongoose.model("Event", eventSchema);
+
+export default Event;

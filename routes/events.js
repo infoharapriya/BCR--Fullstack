@@ -1,6 +1,9 @@
-const express = require("express");
-const Event = require("../models/Event");
-const auth = require("../middleware/auth");
+// routes/events.js (ESM)
+
+import express from "express";
+import Event from "../models/Event.js";
+import auth from "../middleware/auth.js";
+
 const router = express.Router();
 
 // Public: list
@@ -15,8 +18,10 @@ router.post("/", auth("admin"), async (req, res) => {
   try {
     const { name } = req.body;
     if (!name) return res.status(400).json({ message: "Name required" });
+
     const exists = await Event.findOne({ name });
     if (exists) return res.status(400).json({ message: "Event already exists" });
+
     const ev = await Event.create({ name });
     res.json(ev);
   } catch (e) {
@@ -27,7 +32,11 @@ router.post("/", auth("admin"), async (req, res) => {
 // Admin: update
 router.put("/:id", auth("admin"), async (req, res) => {
   try {
-    const ev = await Event.findByIdAndUpdate(req.params.id, { name: req.body.name }, { new: true });
+    const ev = await Event.findByIdAndUpdate(
+      req.params.id,
+      { name: req.body.name },
+      { new: true }
+    );
     if (!ev) return res.status(404).json({ message: "Not found" });
     res.json(ev);
   } catch (e) {
@@ -45,4 +54,4 @@ router.delete("/:id", auth("admin"), async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;
