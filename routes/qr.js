@@ -1,7 +1,7 @@
 import express from "express";
 import multer from "multer";
 import fs from "fs";
-import Jimp from "jimp";
+import * as Jimp from "jimp";   // ✅ FIXED
 import {
   MultiFormatReader,
   BarcodeFormat,
@@ -21,6 +21,7 @@ router.post("/qr-upload", auth(), upload.single("qrImage"), async (req, res) => 
   }
 
   try {
+    // ✅ Jimp usage works the same
     const image = await Jimp.read(req.file.path);
     const { data, width, height } = image.bitmap;
 
