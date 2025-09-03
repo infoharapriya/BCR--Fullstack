@@ -4,6 +4,7 @@ import fetch from "node-fetch";
 import FormData from "form-data";
 import auth from "../middleware/auth.js";
 import OCRresult from "../models/OCRresult.js";
+import { Readable } from "stream";
 // import dotenv from dotenv;
 // dotenv.config();
 
@@ -68,8 +69,10 @@ router.post("/scan", auth(), upload.single("image"), async (req, res) => {
     formData.append("apikey", process.env.FREE_OCR_SPACE_API_KEY);
     formData.append("language", "eng");
     formData.append("isOverlayRequired", "false");
-    formData.append("file", req.file.buffer, { filename: req.file.originalname });
-
+    formData.append("file", Readable.from(req.file.buffer), {
+  filename: req.file.originalname,
+  contentType: req.file.mimetype,
+});
     const response = await fetch("https://api.ocr.space/parse/image", {
       method: "POST",
       body: formData,
