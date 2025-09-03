@@ -44,11 +44,13 @@ app.use("/api/event", eventRoutes);
 const __dirname = path.resolve();
 
 
-app.use(express.static(path.join(__dirname, "client", "build")));
+// ✅ Correct (since build/ is inside server root)
+app.use(express.static(path.join(__dirname, "build")));
 
 app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "client", "build", "index.html"));
+  res.sendFile(path.join(__dirname, "build", "index.html"));
 });
+
 
 
 // Start server
