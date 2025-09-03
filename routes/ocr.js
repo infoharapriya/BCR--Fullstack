@@ -78,20 +78,34 @@ function extractFields(text) {
 }
 
 // --- OCR Scan ---
+// --- OCR Scan ---
 router.post("/scan", auth(), upload.single("image"), async (req, res) => {
-  try {
-    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+  if (!req.file) {
+    return res.status(400).json({ message: "No file uploaded" });
+  }
 
-    const worker = await createWorker("eng");
-    const { data: { text } } = await worker.recognize(req.file.buffer);
+  const worker = createWorker(); // no args here
+
+  try {
+    await worker.load();
+    await worker.loadLanguage("eng");
+    await worker.initialize("eng");
+
+    const {
+      data: { text },
+    } = await worker.recognize(req.file.buffer);
+
+    await worker.terminate();
 
     const fields = extractFields(text);
     res.json({ raw: text, fields });
   } catch (e) {
     console.error("OCR failed:", e);
+    await worker.terminate().catch(() => {}); // cleanup on error
     res.status(500).json({ message: "OCR failed", error: e.message });
   }
 });
+
 
 // --- Save Card ---
 router.post("/save", auth(), async (req, res) => {
