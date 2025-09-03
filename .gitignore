@@ -1,0 +1,21 @@
+# Node modules
+node_modules
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment files
+.env
+
+# Build output (React build copied here)
+build
+
+# OS + editor junk
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
