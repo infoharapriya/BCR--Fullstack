@@ -4,8 +4,8 @@ import fetch from "node-fetch";
 import FormData from "form-data";
 import auth from "../middleware/auth.js";
 import OCRresult from "../models/OCRresult.js";
-import dotenv from dotenv;
-dotenv.config();
+// import dotenv from dotenv;
+// dotenv.config();
 
 
 const router = express.Router();
