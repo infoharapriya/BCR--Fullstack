@@ -1,15 +1,12 @@
 import express from "express";
 import multer from "multer";
-import { createWorker } from "tesseract.js";
+import fetch from "node-fetch";
 import auth from "../middleware/auth.js";
 import OCRresult from "../models/OCRresult.js";
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
-/**
- * Extract useful fields from OCR text
- */
 function extractFields(text) {
   const fields = {
     name: "",
@@ -81,36 +78,36 @@ function extractFields(text) {
 }
 
 /**
- * OCR Scan Route
+ * OCR via OCR.Space API
  */
 router.post("/scan", auth(), upload.single("image"), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: "No file uploaded" });
   }
 
-  const worker = await createWorker(); // ✅ create instance
-
   try {
-    await worker.load();
-    await worker.loadLanguage("eng");
-    await worker.initialize("eng");
+    const formData = new FormData();
+    formData.append("apikey", process.env.OCR_SPACE_API_KEY); // ✅ Use env variable
+    formData.append("language", "eng");
+    formData.append("file", req.file.buffer, req.file.originalname);
 
-    const { data: { text } } = await worker.recognize(req.file.buffer);
+    const response = await fetch("https://api.ocr.space/parse/image", {
+      method: "POST",
+      body: formData,
+    });
+
+    const result = await response.json();
+    const text = result?.ParsedResults?.[0]?.ParsedText || "";
 
     const fields = extractFields(text);
     res.json({ raw: text, fields });
   } catch (e) {
-    console.error("OCR failed:", e);
+    console.error("OCR API failed:", e);
     res.status(500).json({ message: "OCR failed", error: e.message });
-  } finally {
-    // ✅ worker always terminated safely
-    try {
-      await worker.terminate();
-    } catch {
-      console.warn("Worker termination skipped");
-    }
   }
 });
+
+
 
 /**
  * Save Scanned Card
