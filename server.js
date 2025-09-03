@@ -44,7 +44,7 @@ app.use("/api/event", eventRoutes);
 const __dirname = path.resolve();
 app.use(express.static(path.join(__dirname, "build")));
 
-app.get("*", (req, res) => {
+app.get("/*", (req, res) => {
   res.sendFile(path.join(__dirname, "build", "index.html"));
 });
 
