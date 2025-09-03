@@ -2,7 +2,6 @@ const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const path = require("path");
-const __dirname = path.resolve();
 const dotenv = require("dotenv");
 dotenv.config();
 
@@ -32,10 +31,12 @@ app.use("/api/qr", require("./routes/qr"));
 app.use("/api/event", require("./routes/event"));
 
 // ⭐ Serve React frontend (AFTER API routes)
-app.use(express.static(path.join(__dirname, "server/build")));
+const __dirname = path.resolve(); // 👈 Move this here
+app.use(express.static(path.join(__dirname, "build"))); // 👈 remove "server/"
 
 app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "server/build", "index.html"));
+  res.sendFile(path.join(__dirname, "build", "index.html")); // 👈 remove "server/"
 });
 
+// Start server
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
