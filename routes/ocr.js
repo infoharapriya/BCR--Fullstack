@@ -1,6 +1,5 @@
 import express from "express";
 import multer from "multer";
-// import tesseract from "node-tesseract-ocr";
 import { createWorker } from "tesseract.js";
 import auth from "../middleware/auth.js";
 import OCRresult from "../models/OCRresult.js";
@@ -8,7 +7,9 @@ import OCRresult from "../models/OCRresult.js";
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
-// --- Utility: Extract fields from OCR text ---
+/**
+ * Extract useful fields from OCR text
+ */
 function extractFields(text) {
   const fields = {
     name: "",
@@ -42,17 +43,18 @@ function extractFields(text) {
   // designation
   const desigK = [
     "director", "manager", "ceo", "cto", "cfo", "founder",
-    "engineer", "marketing", "owner", "sales", "lead", "consultant"
+    "engineer", "marketing", "owner", "sales", "lead", "consultant",
   ];
   const d = lines.find(l => desigK.some(k => l.toLowerCase().includes(k)));
   if (d) fields.designation = d;
 
-  // company (first all caps line not email/site)
+  // company (all caps line)
   const c = lines.find(
-    l => l === l.toUpperCase() &&
-    !l.includes("@") &&
-    !/www\.|http/i.test(l) &&
-    l.length > 2
+    l =>
+      l === l.toUpperCase() &&
+      !l.includes("@") &&
+      !/www\.|http/i.test(l) &&
+      l.length > 2
   );
   if (c) fields.company = c;
 
@@ -65,54 +67,58 @@ function extractFields(text) {
   });
   if (n) fields.name = n;
 
-  // address (bottom area, with digits/commas)
+  // address (bottom line with numbers/commas)
   const rev = [...lines].reverse();
-  const a = rev.find(l =>
-    l.length > 12 &&
-    /[,0-9]/.test(l) &&
-    !/@|www\.|http/.test(l)
+  const a = rev.find(
+    l =>
+      l.length > 12 &&
+      /[,0-9]/.test(l) &&
+      !/@|www\.|http/.test(l)
   );
   if (a) fields.address = a;
 
   return fields;
 }
 
-// --- OCR Scan ---
-// --- OCR Scan ---
+/**
+ * OCR Scan Route
+ */
 router.post("/scan", auth(), upload.single("image"), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: "No file uploaded" });
   }
 
-  const worker = createWorker(); // no args here
+  const worker = await createWorker(); // ✅ create instance
 
   try {
     await worker.load();
     await worker.loadLanguage("eng");
     await worker.initialize("eng");
 
-    const {
-      data: { text },
-    } = await worker.recognize(req.file.buffer);
-
-    await worker.terminate();
+    const { data: { text } } = await worker.recognize(req.file.buffer);
 
     const fields = extractFields(text);
     res.json({ raw: text, fields });
   } catch (e) {
     console.error("OCR failed:", e);
-    await worker.terminate().catch(() => {}); // cleanup on error
     res.status(500).json({ message: "OCR failed", error: e.message });
+  } finally {
+    // ✅ worker always terminated safely
+    try {
+      await worker.terminate();
+    } catch {
+      console.warn("Worker termination skipped");
+    }
   }
 });
 
-
-// --- Save Card ---
+/**
+ * Save Scanned Card
+ */
 router.post("/save", auth(), async (req, res) => {
   try {
     const { name, designation, company, number, email, site, address, event, type, raw } = req.body;
 
-    // Prevent duplicates by email or phone
     const exists = await OCRresult.findOne({ $or: [{ email }, { number }] });
     if (exists) {
       return res.status(400).json({ message: "Duplicate entry found" });
@@ -140,7 +146,9 @@ router.post("/save", auth(), async (req, res) => {
   }
 });
 
-// --- History (must come before /:id !) ---
+/**
+ * Fetch History
+ */
 router.get("/history", auth(), async (req, res) => {
   try {
     const docs = await OCRresult.find({ createdBy: req.user.id })
@@ -153,7 +161,9 @@ router.get("/history", auth(), async (req, res) => {
   }
 });
 
-// --- Get single record by ID ---
+/**
+ * Get Single Record
+ */
 router.get("/:id", auth(), async (req, res) => {
   try {
     const record = await OCRresult.findOne({
@@ -161,9 +171,7 @@ router.get("/:id", auth(), async (req, res) => {
       createdBy: req.user.id,
     });
 
-    if (!record) {
-      return res.status(404).json({ error: "Record not found" });
-    }
+    if (!record) return res.status(404).json({ error: "Record not found" });
 
     res.json(record);
   } catch (err) {
@@ -172,7 +180,9 @@ router.get("/:id", auth(), async (req, res) => {
   }
 });
 
-// --- Update Record ---
+/**
+ * Update Record
+ */
 router.put("/update/:id", auth(), async (req, res) => {
   try {
     const { id } = req.params;
@@ -193,7 +203,9 @@ router.put("/update/:id", auth(), async (req, res) => {
   }
 });
 
-// --- Delete Record ---
+/**
+ * Delete Record
+ */
 router.delete("/delete/:id", auth(), async (req, res) => {
   try {
     const { id } = req.params;
