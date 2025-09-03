@@ -10,13 +10,25 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ⭐ Allow all origins in production (or keep CLIENT_URL if you want strict)
+const allowedOrigins = [
+  "http://localhost:5173",   // dev
+  "https://bcr-fullstack.onrender.com", // prod
+];
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "*",
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   })
 );
+
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
