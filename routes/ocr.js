@@ -68,10 +68,18 @@ router.post("/scan", auth(), upload.single("image"), async (req, res) => {
     formData.append("apikey", process.env.FREE_OCR_SPACE_API_KEY);
     formData.append("language", "eng");
     formData.append("isOverlayRequired", "false");
-    formData.append("file", Readable.from(req.file.buffer), {
-      filename: req.file.originalname,
-      contentType: req.file.mimetype,
-    });
+    formData.append("file", req.file.buffer, {
+  filename: req.file.originalname,
+  contentType: req.file.mimetype,
+});
+   
+
+console.log("Uploading file:", {
+  name: req.file.originalname,
+  size: req.file.size,
+  type: req.file.mimetype,
+});
+
 
     const response = await fetch("https://api.ocr.space/parse/image", {
       method: "POST",
