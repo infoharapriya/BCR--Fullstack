@@ -58,7 +58,6 @@ function extractFields(text) {
 
   return fields;
 }
-
 router.post("/scan", auth(), upload.single("image"), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: "No file uploaded" });
@@ -70,9 +69,10 @@ router.post("/scan", auth(), upload.single("image"), async (req, res) => {
     formData.append("language", "eng");
     formData.append("isOverlayRequired", "false");
     formData.append("file", Readable.from(req.file.buffer), {
-  filename: req.file.originalname,
-  contentType: req.file.mimetype,
-});
+      filename: req.file.originalname,
+      contentType: req.file.mimetype,
+    });
+
     const response = await fetch("https://api.ocr.space/parse/image", {
       method: "POST",
       body: formData,
@@ -82,18 +82,21 @@ router.post("/scan", auth(), upload.single("image"), async (req, res) => {
     const result = await response.json();
     console.log("OCR API result:", JSON.stringify(result, null, 2));
 
-    if (!result.ParsedResults) {
-      return res.status(500).json({ message: "OCR failed", error: result });
+    if (result.IsErroredOnProcessing) {
+      return res.status(500).json({
+        message: "OCR API error",
+        error: result.ErrorMessage,
+      });
     }
 
-    const text = result.ParsedResults[0].ParsedText || "";
-    res.json({ raw: text, fields: extractFields(text) });
-
+    const text = result.ParsedResults?.[0]?.ParsedText || "";
+    return res.json({ raw: text, fields: extractFields(text) });
   } catch (e) {
     console.error("OCR API failed:", e);
-    res.status(500).json({ message: "OCR failed", error: e.message });
+    return res.status(500).json({ message: "OCR failed", error: e.message });
   }
 });
+
 
 
 /**

@@ -76,6 +76,11 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 import bcrypt from "bcrypt";
 import User from "./models/User.js";   // 👈 import User model
+import authRoutes from "./routes/auth.js";
+import eventsRoutes from "./routes/events.js";
+import ocrRoutes from "./routes/ocr.js";
+import qrRoutes from "./routes/qr.js";
+import eventRoutes from "./routes/event.js";
 
 dotenv.config();
 
@@ -152,12 +157,7 @@ async function seedDefaultUsers() {
   }
 }
 
-// Routes
-import authRoutes from "./routes/auth.js";
-import eventsRoutes from "./routes/events.js";
-import ocrRoutes from "./routes/ocr.js";
-import qrRoutes from "./routes/qr.js";
-import eventRoutes from "./routes/event.js";
+
 
 app.use("/api/auth", authRoutes);
 app.use("/api/events", eventsRoutes);
