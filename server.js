@@ -72,7 +72,7 @@
 import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
-import path from "path";
+// import path from "path";
 import dotenv from "dotenv";
 import bcrypt from "bcrypt";
 import User from "./models/User.js";   // 👈 import User model
@@ -83,7 +83,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 const allowedOrigins = [
-  "http://localhost:5173",   // dev
+  "https://bcr-frontend.onrender.com",   // dev
   "https://bcr-fullstack.onrender.com", // prod
 ];
 
@@ -166,11 +166,11 @@ app.use("/api/qr", qrRoutes);
 app.use("/api/event", eventRoutes);
 
 // Serve frontend
-const __dirname = path.resolve();
-app.use(express.static(path.join(__dirname, "dist")));
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "dist", "index.html"));
-});
+// const __dirname = path.resolve();
+// app.use(express.static(path.join(__dirname, "dist")));
+// app.get("*", (req, res) => {
+//   res.sendFile(path.join(__dirname, "dist", "index.html"));
+// });
 
 // Start server
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
