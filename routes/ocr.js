@@ -1,13 +1,8 @@
 import express from "express";
 import multer from "multer";
-import fetch from "node-fetch";
-import FormData from "form-data";
+import Tesseract from "tesseract.js";
 import auth from "../middleware/auth.js";
 import OCRresult from "../models/OCRresult.js";
-import { Readable } from "stream";
-// import dotenv from dotenv;
-// dotenv.config();
-
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -58,53 +53,25 @@ function extractFields(text) {
 
   return fields;
 }
+
+/**
+ * OCR Scan using Tesseract.js
+ */
 router.post("/scan", auth(), upload.single("image"), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: "No file uploaded" });
   }
 
   try {
-    const formData = new FormData();
-    formData.append("apikey", process.env.FREE_OCR_SPACE_API_KEY);
-    formData.append("language", "eng");
-    formData.append("isOverlayRequired", "false");
-    formData.append("file", req.file.buffer, {
-  filename: req.file.originalname,
-  contentType: req.file.mimetype,
-});
-   
+    // Run OCR locally with Tesseract.js
+    const { data: { text } } = await Tesseract.recognize(req.file.buffer, "eng");
 
-console.log("Uploading file:", {
-  name: req.file.originalname,
-  size: req.file.size,
-  type: req.file.mimetype,
-});
-
-
-    const response = await fetch("https://api.ocr.space/parse/image", {
-      method: "POST",
-      body: formData,
-      headers: formData.getHeaders(),
-    });
-
-    const result = await response.json();
-    console.log("OCR API result:", JSON.stringify(result, null, 2));
-
-    if (result.IsErroredOnProcessing) {
-      return res.status(500).json({
-        message: "OCR API error",
-        error: result.ErrorMessage,
-      });
-    }
-
-    const text = result.ParsedResults?.[0]?.ParsedText || "";
-    return res.json({ raw: text, fields: extractFields(text) });
-  } catch (e) {
-    console.error("OCR API failed:", e);
-    return res.status(500).json({ message: "OCR failed", error: e.message });
+    res.json({ raw: text, fields: extractFields(text) });
+  } catch (err) {
+    console.error("Tesseract OCR error:", err);
+    res.status(500).json({ message: "OCR failed", error: err.message });
   }
 });
-
 
 
 /**
