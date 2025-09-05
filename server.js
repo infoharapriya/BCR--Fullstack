@@ -80,7 +80,7 @@ import authRoutes from "./routes/auth.js";
 import eventsRoutes from "./routes/events.js";
 import ocrRoutes from "./routes/ocr.js";
 import qrRoutes from "./routes/qr.js";
-import eventRoutes from "./routes/event.js";
+// import eventRoutes from "./routes/event.js";
 
 dotenv.config();
 
@@ -163,7 +163,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/events", eventsRoutes);
 app.use("/api/ocr", ocrRoutes);
 app.use("/api/qr", qrRoutes);
-app.use("/api/event", eventRoutes);
+// app.use("/api/event", eventRoutes);
 
 // Serve frontend
 // const __dirname = path.resolve();
