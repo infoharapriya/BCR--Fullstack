@@ -261,70 +261,57 @@ const upload = multer({
 /**
  * Extract fields from OCR text
  */
-function extractFields(text) {
-  const fields = { name: "", designation: "", company: "", phone: "", email: "", site: "", address: "" };
+// --- Helper parser ---
+function parseOCRText(text) {
+  const fields = {
+    name: "",
+    designation: "",
+    company: "",
+    number: "",
+    email: "",
+    site: "",
+    address: "",
+  };
+
   const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
 
-  // email
-  const e = lines.find(l => l.includes("@") && l.includes("."));
-  if (e) fields.email = e;
-
-  // phone
-  for (const l of lines) {
-    const digits = (l.match(/\d/g) || []).length;
-    if (!fields.phone && digits >= 8) {
-      fields.phone = l;
-      break;
+  lines.forEach(line => {
+    if (/director|manager|engineer|developer/i.test(line)) fields.designation = line;
+    else if (/pvt|ltd|software|solutions|technologies|business/i.test(line)) fields.company = line;
+    else if (/^\+?\d{5,}/.test(line)) {
+      fields.number += (fields.number ? " / " : "") + line.replace(/;/g, " / ");
     }
-  }
-
-  // site
-  const s = lines.find(l => /www\.|http/i.test(l));
-  if (s) fields.site = s;
-
-  // designation
-  const desigK = ["director","manager","ceo","cto","cfo","founder","engineer","marketing","owner","sales","lead","consultant"];
-  const d = lines.find(l => desigK.some(k => l.toLowerCase().includes(k)));
-  if (d) fields.designation = d;
-
-  // company (all caps)
-  const c = lines.find(l => l === l.toUpperCase() && !l.includes("@") && !/www\.|http/i.test(l) && l.length > 2);
-  if (c) fields.company = c;
-
-  // name
-  const n = lines.find(l => {
-    if (l === fields.company || l === fields.designation) return false;
-    if (/@|www\.|http/.test(l)) return false;
-    const parts = l.split(/\s+/);
-    return parts.length === 2 && parts.every(p => /^[A-Z][a-zA-Z]+$/.test(p));
+    else if (/\S+@\S+\.\S+/.test(line)) fields.email = line;
+    else if (/www\./i.test(line)) fields.site = line;
+    else if (/road|society|garden|nagar|block|city|state|gujar|delhi|india/i.test(line)) {
+      fields.address += (fields.address ? " " : "") + line;
+    }
+    else if (!fields.name) {
+      fields.name = line; // fallback first line as name
+    }
   });
-  if (n) fields.name = n;
-
-  // address (bottom line with numbers/commas)
-  const rev = [...lines].reverse();
-  const a = rev.find(l => l.length > 12 && /[,0-9]/.test(l) && !/@|www\.|http/.test(l));
-  if (a) fields.address = a;
 
   return fields;
 }
 
-/**
- * OCR Scan (Local Tesseract)
- */
+// --- OCR endpoint ---
 router.post("/scan", auth(), upload.single("image"), async (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ message: "No file uploaded" });
-  }
-
   try {
+    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+
     const { data: { text } } = await Tesseract.recognize(req.file.buffer, "eng");
-    res.json({ raw: text, fields: extractFields(text) });
+
+    const parsed = parseOCRText(text);
+
+    res.json({
+      raw: text,
+      fields: parsed,
+    });
   } catch (err) {
-    console.error("Tesseract OCR error:", err.message);
-    res.status(500).json({ message: "OCR failed", error: err.message });
+    console.error("OCR error:", err.message);
+    res.status(500).json({ message: "OCR failed" });
   }
 });
-
 /**
  * Save Scanned Card
  */
