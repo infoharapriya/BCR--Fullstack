@@ -367,17 +367,32 @@ router.post("/save", auth(), async (req, res) => {
 /**
  * Fetch History
  */
+// router.get("/history", auth(), async (req, res) => {
+//   try {
+//     const docs = await OCRresult.find({ createdBy: req.user.id })
+//       .sort({ createdAt: -1 })
+//       .limit(50);
+//     res.json(docs);
+//   } catch (err) {
+//     console.error("History fetch error:", err.message);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// });
+
 router.get("/history", auth(), async (req, res) => {
   try {
     const docs = await OCRresult.find({ createdBy: req.user.id })
+      .populate("event", "name")   // 🔹 fetch only the name field from Event model
       .sort({ createdAt: -1 })
       .limit(50);
+
     res.json(docs);
   } catch (err) {
     console.error("History fetch error:", err.message);
     res.status(500).json({ message: "Server error" });
   }
 });
+
 
 /**
  * Get Single Record
