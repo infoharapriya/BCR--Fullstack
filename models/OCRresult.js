@@ -106,7 +106,7 @@ import mongoose from "mongoose";
 
 const ocrResultSchema = new mongoose.Schema(
   {
-    customId: { type: String, unique: true }, // Example: TATA-001
+    // customId: { type: String, unique: true }, // Example: TATA-001
     name: String,
     designation: String,
     company: String,
@@ -114,7 +114,8 @@ const ocrResultSchema = new mongoose.Schema(
     email: String,
     site: String,
     address: String,
-    event: String, // selected on Home
+   
+  event: { type: mongoose.Schema.Types.ObjectId, ref: "Event" },
     type: String, // Customer | Supplier
     raw: String,
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
