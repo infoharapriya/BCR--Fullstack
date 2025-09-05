@@ -243,11 +243,11 @@
 
 import express from "express";
 import multer from "multer";
-import fetch from "node-fetch";
-import FormData from "form-data";
+// import fetch from "node-fetch";
+// import FormData from "form-data";
 import auth from "../middleware/auth.js";
 import OCRresult from "../models/OCRresult.js";
-import { Readable } from "stream";
+// import { Readable } from "stream";
 import Tesseract from "tesseract.js"; // ✅ Added import
 
 const router = express.Router();
@@ -267,7 +267,7 @@ function parseOCRText(text) {
     name: "",
     designation: "",
     company: "",
-    number: "",
+    phone: "",
     email: "",
     site: "",
     address: "",
@@ -276,20 +276,28 @@ function parseOCRText(text) {
   const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
 
   lines.forEach(line => {
-    if (/director|manager|engineer|developer/i.test(line)) fields.designation = line;
-    else if (/pvt|ltd|software|solutions|technologies|business/i.test(line)) fields.company = line;
-    else if (/^\+?\d{5,}/.test(line)) {
-      fields.number += (fields.number ? " / " : "") + line.replace(/;/g, " / ");
-    }
-    else if (/\S+@\S+\.\S+/.test(line)) fields.email = line;
-    else if (/www\./i.test(line)) fields.site = line;
-    else if (/road|society|garden|nagar|block|city|state|gujar|delhi|india/i.test(line)) {
+    if (!fields.email && /\S+@\S+\.\S+/.test(line)) {
+      fields.email = line;
+    } else if (!fields.phone && /(\+?\d[\d\s\-]{5,})/.test(line)) {
+      fields.phone = line.replace(/;/g, " / ");
+    } else if (!fields.site && /(www\.|https?:\/\/)/i.test(line)) {
+      fields.site = line;
+    } else if (!fields.designation && /(director|manager|engineer|developer|head|officer)/i.test(line)) {
+      fields.designation = line;
+    } else if (!fields.company && /(pvt|ltd|software|solutions|technologies|business|industries|corp|inc)/i.test(line)) {
+      fields.company = line;
+    } else if (/(road|society|garden|nagar|block|street|city|state|india|gujar|delhi|vadodara|ahmedabad)/i.test(line)) {
       fields.address += (fields.address ? " " : "") + line;
     }
-    else if (!fields.name) {
-      fields.name = line; // fallback first line as name
-    }
   });
+
+  // Try to guess name (first line that is not designation/company/email/site)
+  if (!fields.name) {
+    const possibleName = lines.find(line =>
+      !line.match(/(director|manager|engineer|developer|pvt|ltd|software|solutions|www\.|\@|\d{5,})/i)
+    );
+    fields.name = possibleName || "";
+  }
 
   return fields;
 }
