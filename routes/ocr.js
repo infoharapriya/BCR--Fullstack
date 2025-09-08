@@ -377,9 +377,9 @@ router.post("/save", auth(), async (req, res) => {
 router.get("/history", auth(), async (req, res) => {
   try {
     const docs = await OCRresult.find({ createdBy: req.user.id })
-      .populate("event", "name")   // 🔹 fetch only the name field from Event model
-      .sort({ createdAt: -1 })
-      .limit(50);
+  .populate("event", "name")
+  .sort({ serial: 1 })  // sort only for this route
+  .limit(50);
 
     res.json(docs);
   } catch (err) {
