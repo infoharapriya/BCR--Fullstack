@@ -247,7 +247,7 @@ import multer from "multer";
 // import FormData from "form-data";
 import auth from "../middleware/auth.js";
 import OCRresult from "../models/OCRresult.js";
-// import { Readable } from "stream";
+import ExcelJS from "exceljs";
 import Tesseract from "tesseract.js"; // ✅ Added import
 
 const router = express.Router();
@@ -374,12 +374,35 @@ router.post("/save", auth(), async (req, res) => {
 //   }
 // });
 
+//08/09/2025
+
+// router.get("/history", auth(), async (req, res) => {
+//   try {
+//     const docs = await OCRresult.find({ createdBy: req.user.id })
+//   .populate("event", "name")
+//   .sort({ createdAt: 1 })  // sort only for this route
+//   .limit(50);
+
+//     res.json(docs);
+//   } catch (err) {
+//     console.error("History fetch error:", err.message);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// });
+
+//08/09/2025
 router.get("/history", auth(), async (req, res) => {
   try {
-    const docs = await OCRresult.find({ createdBy: req.user.id })
-  .populate("event", "name")
-  .sort({ createdAt: 1 })  // sort only for this route
-  .limit(50);
+    const { event, type, limit } = req.query;
+
+    let query = { createdBy: req.user.id };
+    if (event) query.event = event;
+    if (type) query.type = type;
+
+    const docs = await OCRresult.find(query)
+      .populate("event", "name")
+      .sort({ createdAt: 1 })  // ascending order
+      .limit(Number(limit) || 50);
 
     res.json(docs);
   } catch (err) {
@@ -388,31 +411,24 @@ router.get("/history", auth(), async (req, res) => {
   }
 });
 
-
 //table data into excel
-
-
+//08/09/2025
 router.get("/export", auth(), async (req, res) => {
   try {
-    // Optional: get query params for filtering
     const { event, type, limit } = req.query;
 
-    // Build query
     let query = { createdBy: req.user.id };
     if (event) query.event = event;
     if (type) query.type = type;
 
-    // Fetch data with same sorting and limit as frontend
     const rows = await OCRresult.find(query)
       .populate("event", "name")
-      .sort({ createdAt: 1 }) // ascending by creation date
-      .limit(Number(limit) || 50); // default 50
+      .sort({ createdAt: 1 })
+      .limit(Number(limit) || 50);
 
-    // Create workbook
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("OCR Records");
 
-    // Header row
     worksheet.columns = [
       { header: "S.No", key: "sno", width: 6 },
       { header: "Date", key: "date", width: 15 },
@@ -427,7 +443,6 @@ router.get("/export", auth(), async (req, res) => {
       { header: "Address", key: "address", width: 30 },
     ];
 
-    // Add rows
     rows.forEach((r, index) => {
       worksheet.addRow({
         sno: index + 1,
@@ -444,14 +459,15 @@ router.get("/export", auth(), async (req, res) => {
       });
     });
 
-    // Set response headers
     res.setHeader(
       "Content-Type",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     );
-    res.setHeader("Content-Disposition", "attachment; filename=ocr_records.xlsx");
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=ocr_records.xlsx"
+    );
 
-    // Send workbook
     await workbook.xlsx.write(res);
     res.end();
   } catch (err) {
@@ -459,6 +475,7 @@ router.get("/export", auth(), async (req, res) => {
     res.status(500).json({ message: "Failed to export Excel" });
   }
 });
+
 
 
 /**
