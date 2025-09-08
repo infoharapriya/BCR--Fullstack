@@ -262,6 +262,80 @@ const upload = multer({
  * Extract fields from OCR text
  */
 // --- Helper parser ---
+// function parseOCRText(text) {
+//   const fields = {
+//     name: "",
+//     designation: "",
+//     company: "",
+//     number: "",
+//     email: "",
+//     site: "",
+//     address: "",
+//   };
+
+//   const lines = text
+//     .split(/\r?\n/)
+//     .map(l => l.trim())
+//     .filter(Boolean);
+
+//   lines.forEach(line => {
+//     // Email
+//     if (!fields.email && /^[\w.\-]+@[\w\-]+\.[A-Za-z]{2,}$/i.test(line)) {
+//       fields.email = line;
+//     }
+//     // Phone numbers (handles +91, spaces, dashes, brackets)
+//     else if (
+//       !fields.number &&
+//       /(\+?\d{1,3}[-.\s]?)?(\(?\d{3,5}\)?[-.\s]?)?\d{3,5}[-.\s]?\d{3,5}/.test(line)
+//     ) {
+//       fields.number = line.replace(/[^\d+]/g, "").replace(/(\d{5})(?=\d)/g, "$1 "); // format
+//     }
+//     // Website
+//     else if (!fields.site && /(https?:\/\/[^\s]+|www\.[^\s]+)/i.test(line)) {
+//       fields.site = line.replace(/^(https?:\/\/)?(www\.)?/i, "");
+//     }
+//     // Designation
+//     else if (
+//       !fields.designation &&
+//       /\b(ceo|cto|coo|founder|director|manager|engineer|developer|consultant|officer|president|chairman|head|lead)\b/i.test(
+//         line
+//       )
+//     ) {
+//       fields.designation = line;
+//     }
+//     // Company (keywords + suffix detection)
+//     else if (
+//       !fields.company &&
+//       /\b(pvt|ltd|private|limited|llp|inc|corp|corporation|group|technologies|solutions|systems|industries|enterprise|company)\b/i.test(
+//         line
+//       )
+//     ) {
+//       fields.company = line;
+//     }
+//     // Address (keywords for locations)
+//     else if (
+//       /(road|street|avenue|nagar|block|sector|city|state|pin|zip|india|usa|uk)/i.test(
+//         line
+//       )
+//     ) {
+//       fields.address += (fields.address ? " " : "") + line;
+//     }
+//   });
+
+//   // Guess Name → must not look like designation/company/email/number
+//   if (!fields.name) {
+//     const possibleName = lines.find(
+//       line =>
+//         !line.match(
+//           /(director|manager|engineer|developer|pvt|ltd|software|solutions|www\.|\@|\d{5,}|technologies|systems|inc|corp)/i
+//         ) && /^[A-Z][a-z]+(\s[A-Z][a-z]+){0,2}$/.test(line) // looks like a human name
+//     );
+//     fields.name = possibleName || "";
+//   }
+
+//   return fields;
+// }
+
 function parseOCRText(text) {
   const fields = {
     name: "",
@@ -278,63 +352,62 @@ function parseOCRText(text) {
     .map(l => l.trim())
     .filter(Boolean);
 
+  // Helper regex patterns
+  const emailRegex = /[\w.\-]+@[\w\-]+\.[A-Za-z]{2,}/;
+  const phoneRegex = /(?:\+?\d{1,3}[-.\s]?)?(?:\(?\d{2,5}\)?[-.\s]?){1,2}\d{5,}/;
+  const siteRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/i;
+  const designationKeywords = /\b(ceo|cto|coo|founder|director|manager|engineer|developer|consultant|officer|president|chairman|head|lead|designer|analyst|architect)\b/i;
+  const companyKeywords = /\b(pvt|ltd|private|limited|llp|inc|corp|corporation|group|technologies|solutions|systems|industries|enterprise|company|software)\b/i;
+  const addressKeywords = /(road|street|avenue|nagar|block|sector|city|state|pin|zip|india|usa|uk|suite|building|floor)/i;
+
   lines.forEach(line => {
-    // Email
-    if (!fields.email && /^[\w.\-]+@[\w\-]+\.[A-Za-z]{2,}$/i.test(line)) {
+    const digitsCount = (line.match(/\d/g) || []).length;
+
+    // Email: any line containing @
+    if (!fields.email && line.includes("@")) {
       fields.email = line;
     }
-    // Phone numbers (handles +91, spaces, dashes, brackets)
-    else if (
-      !fields.number &&
-      /(\+?\d{1,3}[-.\s]?)?(\(?\d{3,5}\)?[-.\s]?)?\d{3,5}[-.\s]?\d{3,5}/.test(line)
-    ) {
-      fields.number = line.replace(/[^\d+]/g, "").replace(/(\d{5})(?=\d)/g, "$1 "); // format
+    // Phone: any line with ≥10 digits
+    else if (!fields.number && digitsCount >= 10) {
+      fields.number = line.replace(/[^\d+]/g, "");
     }
     // Website
-    else if (!fields.site && /(https?:\/\/[^\s]+|www\.[^\s]+)/i.test(line)) {
+    else if (!fields.site && siteRegex.test(line)) {
       fields.site = line.replace(/^(https?:\/\/)?(www\.)?/i, "");
     }
     // Designation
-    else if (
-      !fields.designation &&
-      /\b(ceo|cto|coo|founder|director|manager|engineer|developer|consultant|officer|president|chairman|head|lead)\b/i.test(
-        line
-      )
-    ) {
+    else if (!fields.designation && designationKeywords.test(line)) {
       fields.designation = line;
     }
-    // Company (keywords + suffix detection)
-    else if (
-      !fields.company &&
-      /\b(pvt|ltd|private|limited|llp|inc|corp|corporation|group|technologies|solutions|systems|industries|enterprise|company)\b/i.test(
-        line
-      )
-    ) {
+    // Company
+    else if (!fields.company && companyKeywords.test(line)) {
       fields.company = line;
     }
-    // Address (keywords for locations)
-    else if (
-      /(road|street|avenue|nagar|block|sector|city|state|pin|zip|india|usa|uk)/i.test(
-        line
-      )
-    ) {
+    // Address (concatenate multiple lines)
+    else if (addressKeywords.test(line)) {
       fields.address += (fields.address ? " " : "") + line;
     }
   });
 
-  // Guess Name → must not look like designation/company/email/number
+  // Guess Name: first line not recognized as other fields
   if (!fields.name) {
-    const possibleName = lines.find(
-      line =>
-        !line.match(
-          /(director|manager|engineer|developer|pvt|ltd|software|solutions|www\.|\@|\d{5,}|technologies|systems|inc|corp)/i
-        ) && /^[A-Z][a-z]+(\s[A-Z][a-z]+){0,2}$/.test(line) // looks like a human name
-    );
+    const possibleName = lines.find(line => {
+      return (
+        line.length > 1 &&
+        !line.includes("@") &&
+        (line.match(/\d/g) || []).length < 2 &&
+        !designationKeywords.test(line) &&
+        !companyKeywords.test(line) &&
+        !siteRegex.test(line)
+      );
+    });
     fields.name = possibleName || "";
   }
 
   return fields;
 }
+
+
 
 // --- OCR endpoint ---
 router.post("/scan", auth(), upload.single("image"), async (req, res) => {
