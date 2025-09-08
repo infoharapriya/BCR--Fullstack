@@ -101,7 +101,6 @@
 
 // module.exports = mongoose.model("OCRresult", ocrResultSchema);
 // models/OCRresult.js (ESM)
-
 import mongoose from "mongoose";
 import Counter from "./Counter.js"; // import counter model
 
@@ -138,6 +137,12 @@ ocrResultSchema.pre("save", async function (next) {
       return next(err);
     }
   }
+  next();
+});
+
+// ✅ Always return results sorted by serial ascending
+ocrResultSchema.pre(/^find/, function (next) {
+  this.sort({ serial: 1 });
   next();
 });
 
