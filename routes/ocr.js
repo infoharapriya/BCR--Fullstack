@@ -273,28 +273,62 @@ function parseOCRText(text) {
     address: "",
   };
 
-  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const lines = text
+    .split(/\r?\n/)
+    .map(l => l.trim())
+    .filter(Boolean);
 
   lines.forEach(line => {
-    if (!fields.email && /\S+@\S+\.\S+/.test(line)) {
+    // Email
+    if (!fields.email && /^[\w.\-]+@[\w\-]+\.[A-Za-z]{2,}$/i.test(line)) {
       fields.email = line;
-    } else if (!fields.number && /(\+?\d[\d\s\-]{5,})/.test(line)) {
-      fields.number = line.replace(/;/g, " / ");
-    } else if (!fields.site && /(www\.|https?:\/\/)/i.test(line)) {
-      fields.site = line;
-    } else if (!fields.designation && /(director|manager|engineer|developer|head|officer)/i.test(line)) {
+    }
+    // Phone numbers (handles +91, spaces, dashes, brackets)
+    else if (
+      !fields.number &&
+      /(\+?\d{1,3}[-.\s]?)?(\(?\d{3,5}\)?[-.\s]?)?\d{3,5}[-.\s]?\d{3,5}/.test(line)
+    ) {
+      fields.number = line.replace(/[^\d+]/g, "").replace(/(\d{5})(?=\d)/g, "$1 "); // format
+    }
+    // Website
+    else if (!fields.site && /(https?:\/\/[^\s]+|www\.[^\s]+)/i.test(line)) {
+      fields.site = line.replace(/^(https?:\/\/)?(www\.)?/i, "");
+    }
+    // Designation
+    else if (
+      !fields.designation &&
+      /\b(ceo|cto|coo|founder|director|manager|engineer|developer|consultant|officer|president|chairman|head|lead)\b/i.test(
+        line
+      )
+    ) {
       fields.designation = line;
-    } else if (!fields.company && /(pvt|ltd|software|solutions|technologies|business|industries|corp|inc)/i.test(line)) {
+    }
+    // Company (keywords + suffix detection)
+    else if (
+      !fields.company &&
+      /\b(pvt|ltd|private|limited|llp|inc|corp|corporation|group|technologies|solutions|systems|industries|enterprise|company)\b/i.test(
+        line
+      )
+    ) {
       fields.company = line;
-    } else if (/(road|society|garden|nagar|block|street|city|state|india|gujar|delhi|vadodara|ahmedabad)/i.test(line)) {
+    }
+    // Address (keywords for locations)
+    else if (
+      /(road|street|avenue|nagar|block|sector|city|state|pin|zip|india|usa|uk)/i.test(
+        line
+      )
+    ) {
       fields.address += (fields.address ? " " : "") + line;
     }
   });
 
-  // Try to guess name (first line that is not designation/company/email/site)
+  // Guess Name → must not look like designation/company/email/number
   if (!fields.name) {
-    const possibleName = lines.find(line =>
-      !line.match(/(director|manager|engineer|developer|pvt|ltd|software|solutions|www\.|\@|\d{5,})/i)
+    const possibleName = lines.find(
+      line =>
+        !line.match(
+          /(director|manager|engineer|developer|pvt|ltd|software|solutions|www\.|\@|\d{5,}|technologies|systems|inc|corp)/i
+        ) && /^[A-Z][a-z]+(\s[A-Z][a-z]+){0,2}$/.test(line) // looks like a human name
     );
     fields.name = possibleName || "";
   }
