@@ -101,6 +101,7 @@
 
 // module.exports = mongoose.model("OCRresult", ocrResultSchema);
 // models/OCRresult.js (ESM)
+
 import mongoose from "mongoose";
 import Counter from "./Counter.js"; // import counter model
 
