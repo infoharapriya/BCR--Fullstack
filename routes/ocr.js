@@ -267,7 +267,7 @@ function parseOCRText(text) {
     name: "",
     designation: "",
     company: "",
-    phone: "",
+    number: "",
     email: "",
     site: "",
     address: "",
@@ -278,7 +278,7 @@ function parseOCRText(text) {
   lines.forEach(line => {
     if (!fields.email && /\S+@\S+\.\S+/.test(line)) {
       fields.email = line;
-    } else if (!fields.phone && /(\+?\d[\d\s\-]{5,})/.test(line)) {
+    } else if (!fields.number && /(\+?\d[\d\s\-]{5,})/.test(line)) {
       fields.phone = line.replace(/;/g, " / ");
     } else if (!fields.site && /(www\.|https?:\/\/)/i.test(line)) {
       fields.site = line;
@@ -325,12 +325,12 @@ router.post("/scan", auth(), upload.single("image"), async (req, res) => {
  */
 router.post("/save", auth(), async (req, res) => {
   try {
-    const { name, designation, company, phone, email, site, address, event, type, raw } = req.body;
+    const { name, designation, company, number, email, site, address, event, type, raw } = req.body;
 
     // ✅ Flexible duplicate check
     const query = [];
     if (email) query.push({ email });
-    if (phone) query.push({ phone });
+    if (number) query.push({ number });
     const exists = query.length ? await OCRresult.findOne({ $or: query }) : null;
 
     if (exists) {
@@ -341,7 +341,7 @@ router.post("/save", auth(), async (req, res) => {
       name,
       designation,
       company,
-      phone,
+      number,
       email,
       site,
       address,
