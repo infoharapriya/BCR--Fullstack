@@ -123,37 +123,37 @@ const ocrResultSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// ✅ Pre-save hook for customId generation
-ocrResultSchema.pre("save", async function (next) {
-  if (!this.customId && this.company) {
-    try {
-      const OCRresult = mongoose.model("OCRresult"); // avoid import recursion
+// // ✅ Pre-save hook for customId generation
+// ocrResultSchema.pre("save", async function (next) {
+//   if (!this.customId && this.company) {
+//     try {
+//       const OCRresult = mongoose.model("OCRresult"); // avoid import recursion
 
-      // Take first 4 letters of company (uppercase, no spaces)
-      const prefix = this.company.replace(/\s+/g, "").substring(0, 4).toUpperCase();
+//       // Take first 4 letters of company (uppercase, no spaces)
+//       const prefix = this.company.replace(/\s+/g, "").substring(0, 4).toUpperCase();
 
-      // Find the latest record
-      const lastRecord = await OCRresult.findOne({}).sort({ createdAt: -1 });
+//       // Find the latest record
+//       const lastRecord = await OCRresult.findOne({}).sort({ createdAt: -1 });
 
-      let serial = 1;
-      if (lastRecord?.customId) {
-        const lastSerial = parseInt(lastRecord.customId.split("-").pop(), 10);
-        if (!isNaN(lastSerial)) {
-          serial = lastSerial + 1;
-        }
-      }
+//       let serial = 1;
+//       if (lastRecord?.customId) {
+//         const lastSerial = parseInt(lastRecord.customId.split("-").pop(), 10);
+//         if (!isNaN(lastSerial)) {
+//           serial = lastSerial + 1;
+//         }
+//       }
 
-      // Final customId format: PREFIX-001
-      this.customId = `${prefix}-${String(serial).padStart(3, "0")}`;
-    } catch (err) {
-      return next(err);
-    }
-  }
-  next();
-});
+//       // Final customId format: PREFIX-001
+//       this.customId = `${prefix}-${String(serial).padStart(3, "0")}`;
+//     } catch (err) {
+//       return next(err);
+//     }
+//   }
+//   next();
+// });
 
-// Index for faster lookups (not unique to allow duplicates in edge cases)
-ocrResultSchema.index({ name: 1, company: 1, email: 1, number: 1 });
+// // Index for faster lookups (not unique to allow duplicates in edge cases)
+// ocrResultSchema.index({ name: 1, company: 1, email: 1, number: 1 });
 
 const OCRresult = mongoose.model("OCRresult", ocrResultSchema);
 
