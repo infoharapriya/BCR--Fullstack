@@ -279,7 +279,7 @@ function parseOCRText(text) {
     if (!fields.email && /\S+@\S+\.\S+/.test(line)) {
       fields.email = line;
     } else if (!fields.number && /(\+?\d[\d\s\-]{5,})/.test(line)) {
-      fields.phone = line.replace(/;/g, " / ");
+      fields.number = line.replace(/;/g, " / ");
     } else if (!fields.site && /(www\.|https?:\/\/)/i.test(line)) {
       fields.site = line;
     } else if (!fields.designation && /(director|manager|engineer|developer|head|officer)/i.test(line)) {
