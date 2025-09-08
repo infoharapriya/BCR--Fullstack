@@ -378,7 +378,7 @@ router.get("/history", auth(), async (req, res) => {
   try {
     const docs = await OCRresult.find({ createdBy: req.user.id })
   .populate("event", "name")
-  .sort({ serial: 1 })  // sort only for this route
+  .sort({ createdAt: 1 })  // sort only for this route
   .limit(50);
 
     res.json(docs);

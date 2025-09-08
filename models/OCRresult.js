@@ -109,7 +109,7 @@ import Counter from "./Counter.js"; // import counter model
 
 const ocrResultSchema = new mongoose.Schema(
   {
-    serial: { type: Number, unique: true },   // 👈 new serial field
+    // serial: { type: Number, unique: true },   // 👈 new serial field
     name: String,
     designation: String,
     company: String,
@@ -126,22 +126,22 @@ const ocrResultSchema = new mongoose.Schema(
 );
 
 // ✅ Auto-increment serial before saving
-ocrResultSchema.pre("save", async function (next) {
-  if (this.isNew) {
-    try {
-      const counter = await Counter.findByIdAndUpdate(
-        { _id: "ocrResultSerial" },           // sequence name
-        { $inc: { seq: 1 } },                 // increment
-        { new: true, upsert: true }           // create if not exists
-      );
+// ocrResultSchema.pre("save", async function (next) {
+//   if (this.isNew) {
+//     try {
+//       const counter = await Counter.findByIdAndUpdate(
+//         { _id: "ocrResultSerial" },           // sequence name
+//         { $inc: { seq: 1 } },                 // increment
+//         { new: true, upsert: true }           // create if not exists
+//       );
 
-      this.serial = counter.seq;              // assign serial number
-    } catch (err) {
-      return next(err);
-    }
-  }
-  next();
-});
+//       this.serial = counter.seq;              // assign serial number
+//     } catch (err) {
+//       return next(err);
+//     }
+//   }
+//   next();
+// });
 
 // ✅ Always return results sorted by serial ascending
 // ocrResultSchema.pre(/^find/, function (next) {
