@@ -101,12 +101,12 @@
 
 // module.exports = mongoose.model("OCRresult", ocrResultSchema);
 // models/OCRresult.js (ESM)
-
 import mongoose from "mongoose";
+import Counter from "./Counter.js"; // import counter model
 
 const ocrResultSchema = new mongoose.Schema(
   {
-    // customId: { type: String, unique: true }, // Example: TATA-001
+    serial: { type: Number, unique: true },   // 👈 new serial field
     name: String,
     designation: String,
     company: String,
@@ -114,8 +114,7 @@ const ocrResultSchema = new mongoose.Schema(
     email: String,
     site: String,
     address: String,
-   
-  event: { type: mongoose.Schema.Types.ObjectId, ref: "Event" },
+    event: { type: mongoose.Schema.Types.ObjectId, ref: "Event" },
     type: String, // Customer | Supplier
     raw: String,
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
@@ -123,37 +122,23 @@ const ocrResultSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// // ✅ Pre-save hook for customId generation
-// ocrResultSchema.pre("save", async function (next) {
-//   if (!this.customId && this.company) {
-//     try {
-//       const OCRresult = mongoose.model("OCRresult"); // avoid import recursion
+// ✅ Auto-increment serial before saving
+ocrResultSchema.pre("save", async function (next) {
+  if (this.isNew) {
+    try {
+      const counter = await Counter.findByIdAndUpdate(
+        { _id: "ocrResultSerial" },           // sequence name
+        { $inc: { seq: 1 } },                 // increment
+        { new: true, upsert: true }           // create if not exists
+      );
 
-//       // Take first 4 letters of company (uppercase, no spaces)
-//       const prefix = this.company.replace(/\s+/g, "").substring(0, 4).toUpperCase();
-
-//       // Find the latest record
-//       const lastRecord = await OCRresult.findOne({}).sort({ createdAt: -1 });
-
-//       let serial = 1;
-//       if (lastRecord?.customId) {
-//         const lastSerial = parseInt(lastRecord.customId.split("-").pop(), 10);
-//         if (!isNaN(lastSerial)) {
-//           serial = lastSerial + 1;
-//         }
-//       }
-
-//       // Final customId format: PREFIX-001
-//       this.customId = `${prefix}-${String(serial).padStart(3, "0")}`;
-//     } catch (err) {
-//       return next(err);
-//     }
-//   }
-//   next();
-// });
-
-// // Index for faster lookups (not unique to allow duplicates in edge cases)
-// ocrResultSchema.index({ name: 1, company: 1, email: 1, number: 1 });
+      this.serial = counter.seq;              // assign serial number
+    } catch (err) {
+      return next(err);
+    }
+  }
+  next();
+});
 
 const OCRresult = mongoose.model("OCRresult", ocrResultSchema);
 
