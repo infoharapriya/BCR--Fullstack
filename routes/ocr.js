@@ -335,7 +335,6 @@ const upload = multer({
 
 //   return fields;
 // }
-
 function parseOCRText(text) {
   const fields = {
     name: "",
@@ -360,15 +359,18 @@ function parseOCRText(text) {
   const companyKeywords = /\b(pvt|ltd|private|limited|llp|inc|corp|corporation|group|technologies|solutions|systems|industries|enterprise|company|software)\b/i;
   const addressKeywords = /(road|street|avenue|nagar|block|sector|city|state|pin|zip|india|usa|uk|suite|building|floor)/i;
 
+  // Regex to detect human names (first and last, capitalized)
+  const nameRegex = /^[A-Z][a-z]+(?:\s[A-Z][a-z]+){0,2}$/;
+
   lines.forEach(line => {
     const digitsCount = (line.match(/\d/g) || []).length;
 
     // Email: any line containing @
-    if (!fields.email && line.includes("@")) {
+    if (!fields.email && emailRegex.test(line)) {
       fields.email = line;
     }
     // Phone: any line with ≥10 digits
-    else if (!fields.number && digitsCount >= 10) {
+    else if (!fields.number && digitsCount >= 10 && phoneRegex.test(line)) {
       fields.number = line.replace(/[^\d+]/g, "");
     }
     // Website
@@ -387,9 +389,13 @@ function parseOCRText(text) {
     else if (addressKeywords.test(line)) {
       fields.address += (fields.address ? " " : "") + line;
     }
+    // Name (detect with regex if not already filled)
+    else if (!fields.name && nameRegex.test(line)) {
+      fields.name = line;
+    }
   });
 
-  // Guess Name: first line not recognized as other fields
+  // Fallback: guess Name from lines not identified as other fields
   if (!fields.name) {
     const possibleName = lines.find(line => {
       return (
@@ -406,7 +412,6 @@ function parseOCRText(text) {
 
   return fields;
 }
-
 
 
 // --- OCR endpoint ---
@@ -533,6 +538,8 @@ router.get("/export", auth(), async (req, res) => {
       .sort({ createdAt: 1 })
       .limit(Number(limit) || 50);
 
+      res.json(docs);
+
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("OCR Records");
 
@@ -548,6 +555,7 @@ router.get("/export", auth(), async (req, res) => {
       { header: "Email", key: "email", width: 25 },
       { header: "Website", key: "site", width: 25 },
       { header: "Address", key: "address", width: 30 },
+       { header: "Raw OCR Text", key: "raw", width: 50 },
     ];
 
     rows.forEach((r, index) => {
@@ -563,6 +571,7 @@ router.get("/export", auth(), async (req, res) => {
         email: r.email,
         site: r.site,
         address: r.address,
+        raw: r.raw,
       });
     });
 
