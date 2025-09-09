@@ -240,24 +240,7 @@
 // export default router;
 
 
-
-import express from "express";
-import multer from "multer";
-// import fetch from "node-fetch";
-// import FormData from "form-data";
-import auth from "../middleware/auth.js";
-import OCRresult from "../models/OCRresult.js";
-import ExcelJS from "exceljs";
-import Tesseract from "tesseract.js"; // ✅ Added import
-
-const router = express.Router();
-
-// ✅ Limit file size to 1MB
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 1 * 1024 * 1024 }, // 1 MB
-});
-
+//09/09/2025 - REGEX
 /**
  * Extract fields from OCR text
  */
@@ -335,6 +318,25 @@ const upload = multer({
 
 //   return fields;
 // }
+
+import express from "express";
+import multer from "multer";
+// import fetch from "node-fetch";
+// import FormData from "form-data";
+import auth from "../middleware/auth.js";
+import OCRresult from "../models/OCRresult.js";
+import ExcelJS from "exceljs";
+import Tesseract from "tesseract.js"; // ✅ Added import
+
+const router = express.Router();
+
+// ✅ Limit file size to 1MB
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 1 * 1024 * 1024 }, // 1 MB
+});
+
+
 function parseOCRText(text) {
   const fields = {
     name: "",
@@ -538,7 +540,7 @@ router.get("/export", auth(), async (req, res) => {
       .sort({ createdAt: 1 })
       .limit(Number(limit) || 50);
 
-      res.json(docs);
+      // res.json(docs);
 
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("OCR Records");
