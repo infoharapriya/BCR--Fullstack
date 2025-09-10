@@ -414,7 +414,6 @@ const upload = multer({
 
 //   return fields;
 // }
-
 function parseOCRText(text) {
   const fields = { 
     name: "", 
@@ -433,12 +432,13 @@ function parseOCRText(text) {
 
   // Regex patterns
   const emailRegex = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
+  // Require at least 10 digits (mobile/landline), avoid postal codes
   const phoneRegex = /(\+?\d{1,3}[-.\s]?)?(\(?\d{2,5}\)?[-.\s]?)?\d{6,}/;
   const siteRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/i;
   const designationKeywords = /\b(ceo|cto|coo|founder|director|manager|engineer|consultant|officer|president|chairman|head|lead|designer|analyst|architect)\b/i;
   const companyKeywords = /\b(pvt|ltd|private|limited|llp|inc|corp|technologies|solutions|systems|industries|enterprise|company|software)\b/i;
 
-  // 1️⃣ Name: pick first line that looks like a human name
+  // 1️⃣ Name
   if (!fields.name) {
     const possibleName = lines.find(l => 
       !l.includes("@") &&
@@ -456,10 +456,16 @@ function parseOCRText(text) {
     if (emailLine) fields.email = emailLine.match(emailRegex)[0];
   }
 
-  // 3️⃣ Phone Number
+  // 3️⃣ Phone Number (only numbers with ≥10 digits, ignore postal codes)
   if (!fields.number) {
-    const phoneLine = lines.find(l => phoneRegex.test(l));
-    if (phoneLine) fields.number = phoneLine.replace(/[^\d+]/g, "");
+    const phoneLine = lines.find(l => {
+      if (!phoneRegex.test(l)) return false;
+      const digits = l.replace(/[^\d+]/g, "");
+      return digits.length >= 10 && digits.length <= 13; // typical phone number length
+    });
+    if (phoneLine) {
+      fields.number = phoneLine.replace(/[^\d+]/g, "");
+    }
   }
 
   // 4️⃣ Designation
@@ -481,9 +487,9 @@ function parseOCRText(text) {
   }
 
   // 7️⃣ Address = leftover lines
-  fields.address = lines
-    .filter(l => !Object.values(fields).includes(l))
-    .join(", ");
+  fields.address = lines.filter(l =>
+    !Object.values(fields).includes(l)
+  ).join(", ");
 
   return fields;
 }
