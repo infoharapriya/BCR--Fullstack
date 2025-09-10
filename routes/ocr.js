@@ -496,12 +496,88 @@ const upload = multer({
 
 //10/09/2025
 
+// function parseOCRText(text) {
+//   const fields = {
+//     name: "",
+//     designation: "",
+//     company: "",
+//     number: "",
+//     email: "",
+//     site: "",
+//     address: "",
+//   };
+
+//   // Split into lines & clean
+//   const lines = text
+//     .split(/\r?\n/)
+//     .map(l => l.trim())
+//     .filter(l => l.length > 0);
+
+//   // Regex patterns
+//   const emailRegex = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
+
+//   // const emailRegex = ([-!#-'*+/-9=?A-Z^-~]+(\.[-!#-'*+/-9=?A-Z^-~]+)*|"([]!#-[^-~ \t]|(\\[\t -~]))+")@([0-9A-Za-z]([0-9A-Za-z-]{0,61}[0-9A-Za-z])?(\.[0-9A-Za-z]([0-9A-Za-z-]{0,61}[0-9A-Za-z])?)*|\[((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])(\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])){3}|IPv6:((((0|[1-9A-Fa-f][0-9A-Fa-f]{0,3}):){6}|::((0|[1-9A-Fa-f][0-9A-Fa-f]{0,3}):){5}|[0-9A-Fa-f]{0,4}::((0|[1-9A-Fa-f][0-9A-Fa-f]{0,3}):){4}|(((0|[1-9A-Fa-f][0-9A-Fa-f]{0,3}):)?(0|[1-9A-Fa-f][0-9A-Fa-f]{0,3}))?::((0|[1-9A-Fa-f][0-9A-Fa-f]{0,3}):){3}|(((0|[1-9A-Fa-f][0-9A-Fa-f]{0,3}):){0,2}(0|[1-9A-Fa-f][0-9A-Fa-f]{0,3}))?::((0|[1-9A-Fa-f][0-9A-Fa-f]{0,3}):){2}|(((0|[1-9A-Fa-f][0-9A-Fa-f]{0,3}):){0,3}(0|[1-9A-Fa-f][0-9A-Fa-f]{0,3}))?::(0|[1-9A-Fa-f][0-9A-Fa-f]{0,3}):|(((0|[1-9A-Fa-f][0-9A-Fa-f]{0,3}):){0,4}(0|[1-9A-Fa-f][0-9A-Fa-f]{0,3}))?::)((0|[1-9A-Fa-f][0-9A-Fa-f]{0,3}):(0|[1-9A-Fa-f][0-9A-Fa-f]{0,3})|(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])(\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])){3})|(((0|[1-9A-Fa-f][0-9A-Fa-f]{0,3}):){0,5}(0|[1-9A-Fa-f][0-9A-Fa-f]{0,3}))?::(0|[1-9A-Fa-f][0-9A-Fa-f]{0,3})|(((0|[1-9A-Fa-f][0-9A-Fa-f]{0,3}):){0,6}(0|[1-9A-Fa-f][0-9A-Fa-f]{0,3}))?::)|(?!IPv6:)[0-9A-Za-z-]*[0-9A-Za-z]:[!-Z^-~]+)])/i
+//   const phoneRegex = /(\+?\d{1,3}[\s-]?)?(\(?\d{2,5}\)?[\s-]?)?\d{5,}/;
+//   const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+|\b[a-z0-9-]+\.[a-z]{2,})/i;
+
+//   // Extract emails, phones, websites
+//   for (let line of lines) {
+//     if (!fields.email && emailRegex.test(line)) {
+//       fields.email = line.match(emailRegex)[0];
+//       continue;
+//     }
+//     if (!fields.number && phoneRegex.test(line)) {
+//       fields.number = line.match(phoneRegex)[0];
+//       continue;
+//     }
+//     if (!fields.site && urlRegex.test(line)) {
+//       fields.site = line.match(urlRegex)[0];
+//       continue;
+//     }
+//   }
+
+//   // Guess Name (first line without @, digits, www, etc.)
+//   const possibleNames = lines.filter(
+//     l => !/[0-9@]/.test(l) && l.split(" ").length <= 4
+//   );
+//   if (possibleNames.length) fields.name = possibleNames[0];
+
+//   // Guess Job Title (look for keywords)
+//   const jobKeywords = /(Manager|Director|Managing Director|Sr. Sales Manager|Engineer|Consultant|CEO|CTO|Sales|Executive|Officer|Head|Specialist|Lead|Designer|Developer)/i;
+//   const jobLine = lines.find(l => jobKeywords.test(l));
+//   if (jobLine) fields.designation = jobLine;
+
+//   // Guess Company (all caps or contains business words)
+//   const companyKeywords = /(LTD|LLP|INC|PVT|TECH|TECHNOLOGIES|SOLUTIONS|SYSTEMS|CORP|COMPANY)/i;
+//   const companyLine =
+//     lines.find(l => companyKeywords.test(l)) ||
+//     lines.find(l => l === l.toUpperCase() && l.length > 2);
+//   if (companyLine) fields.company = companyLine;
+
+//   // Remaining lines → address
+//   const used = new Set([
+//     fields.name,
+//     fields.designation,
+//     fields.company,
+//     fields.number,
+//     fields.email,
+//     fields.site,
+//   ].filter(Boolean));
+
+//   const addressLines = lines.filter(l => ![...used].some(u => l.includes(u)));
+//   if (addressLines.length) fields.address = addressLines.join(", ");
+
+//   return fields;
+// }
+
+//again- 10/09/2025
 function parseOCRText(text) {
   const fields = {
     name: "",
     designation: "",
     company: "",
-    number: "",
+    number: "",   // landline or local phone
+    mobile: "",   // strictly numbers starting with +
     email: "",
     site: "",
     address: "",
@@ -515,59 +591,86 @@ function parseOCRText(text) {
 
   // Regex patterns
   const emailRegex = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
-  const phoneRegex = /(\+?\d{1,3}[\s-]?)?(\(?\d{2,5}\)?[\s-]?)?\d{5,}/;
-  const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+|\b[a-z0-9-]+\.[a-z]{2,})/i;
+  const phoneRegex = /(\+?\d{1,3}[-.\s]?)?(\(?\d{2,5}\)?[-.\s]?)?\d{5,10}/;
+  const urlRegex   = /\b((https?:\/\/|www\.)[^\s]+|[a-z0-9-]+\.(com|net|org|in|co|io|ai))\b/i;
 
   // Extract emails, phones, websites
   for (let line of lines) {
+    // Email
     if (!fields.email && emailRegex.test(line)) {
       fields.email = line.match(emailRegex)[0];
       continue;
     }
+
+    // Mobile (line starts with +)
+    if (!fields.mobile && line.startsWith("+") && phoneRegex.test(line)) {
+      fields.mobile = line.match(phoneRegex)[0];
+      continue;
+    }
+
+    // Other numbers
     if (!fields.number && phoneRegex.test(line)) {
       fields.number = line.match(phoneRegex)[0];
       continue;
     }
+
+    // Website
     if (!fields.site && urlRegex.test(line)) {
       fields.site = line.match(urlRegex)[0];
       continue;
     }
   }
 
-  // Guess Name (first line without @, digits, www, etc.)
+  // Guess Name
   const possibleNames = lines.filter(
     l => !/[0-9@]/.test(l) && l.split(" ").length <= 4
   );
-  if (possibleNames.length) fields.name = possibleNames[0];
+  if (possibleNames.length) {
+    fields.name = possibleNames[0];
+  }
 
-  // Guess Job Title (look for keywords)
-  const jobKeywords = /(Manager|Director|Managing Director|Sr. Sales Manager|Engineer|Consultant|CEO|CTO|Sales|Executive|Officer|Head|Specialist|Lead|Designer|Developer)/i;
+  // Fallback: Extract name from email (before @)
+  if (!fields.name && fields.email) {
+    let username = fields.email.split("@")[0]; // "john.smith"
+    username = username.replace(/[._-]/g, " "); // replace . _ - with space
+    username = username
+      .split(" ")
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
+    fields.name = username; // "John Smith"
+  }
+
+  // Guess Job Title
+  const jobKeywords = /(Manager|Director|Managing Director|Engineer|Consultant|CEO|CTO|Sales|Executive|Officer|Head|Specialist|Lead|Designer|Developer)/i;
   const jobLine = lines.find(l => jobKeywords.test(l));
   if (jobLine) fields.designation = jobLine;
 
-  // Guess Company (all caps or contains business words)
+  // Guess Company from text
   const companyKeywords = /(LTD|LLP|INC|PVT|TECH|TECHNOLOGIES|SOLUTIONS|SYSTEMS|CORP|COMPANY)/i;
   const companyLine =
     lines.find(l => companyKeywords.test(l)) ||
     lines.find(l => l === l.toUpperCase() && l.length > 2);
   if (companyLine) fields.company = companyLine;
 
-  // Remaining lines → address
-  const used = new Set([
-    fields.name,
-    fields.designation,
-    fields.company,
-    fields.number,
-    fields.email,
-    fields.site,
-  ].filter(Boolean));
+  // Fallback: Guess Company from email domain
+  if (!fields.company && fields.email) {
+    const domainMatch = fields.email.match(/@([A-Za-z0-9.-]+)/);
+    if (domainMatch) {
+      let domain = domainMatch[1]; // "openai.com"
+      domain = domain.split(".")[0]; // "openai"
+      fields.company = domain.charAt(0).toUpperCase() + domain.slice(1);
+    }
+  }
 
+  // Remaining lines → address
+  const used = new Set(
+    [fields.name, fields.designation, fields.company, fields.number, fields.mobile, fields.email, fields.site].filter(Boolean)
+  );
   const addressLines = lines.filter(l => ![...used].some(u => l.includes(u)));
   if (addressLines.length) fields.address = addressLines.join(", ");
 
   return fields;
 }
-
 
 
 // --- OCR endpoint ---
