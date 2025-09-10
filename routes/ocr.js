@@ -571,6 +571,7 @@ const upload = multer({
 // }
 
 //again- 10/09/2025
+
 function parseOCRText(text) {
   const fields = {
     name: "",
@@ -595,26 +596,23 @@ function parseOCRText(text) {
 
   // Extract emails, phones, websites
   for (let line of lines) {
-    // Email
     if (!fields.email && emailRegex.test(line)) {
       fields.email = line.match(emailRegex)[0];
       continue;
     }
 
-    // Mobile (only + numbers)
     if (!fields.number && mobileRegex.test(line)) {
       fields.number = line.match(mobileRegex)[0];
       continue;
     }
 
-    // Website
     if (!fields.site && urlRegex.test(line)) {
       fields.site = line.match(urlRegex)[0];
       continue;
     }
   }
 
-  // Guess Name (must be clean text, no digits/@)
+  // Guess Name from clean text
   const possibleNames = lines.filter(
     l => /^[A-Za-z\s]{2,40}$/.test(l) && l.split(" ").length <= 4
   );
@@ -623,16 +621,19 @@ function parseOCRText(text) {
   }
 
   // Fallback: Extract name from email (before @)
-  if (!fields.name && fields.email) {
-    let username = fields.email.split("@")[0]; // e.g. "john.smith"
+  if (fields.email) {
+    let username = fields.email.split("@")[0]; // before @
     username = username.replace(/\d+/g, "");   // remove digits
-    username = username.replace(/[._-]/g, " "); // replace . _ - with spaces
+    username = username.replace(/[._-]/g, " "); // replace . _ -
     username = username
       .split(" ")
       .filter(Boolean)
       .map(w => w.charAt(0).toUpperCase() + w.slice(1))
       .join(" ");
-    if (username) fields.name = username;
+
+    if (!fields.name && username) {
+      fields.name = username;
+    }
   }
 
   // Guess Job Title
@@ -642,19 +643,24 @@ function parseOCRText(text) {
 
   // Guess Company from text
   const companyKeywords = /(LTD|LLP|INC|PVT|TECH|TECHNOLOGIES|SOLUTIONS|SYSTEMS|CORP|COMPANY)/i;
-  const companyLine =
+  let companyLine =
     lines.find(l => companyKeywords.test(l)) ||
     lines.find(l => l === l.toUpperCase() && l.length > 2);
-  if (companyLine) fields.company = companyLine;
 
-  // Fallback: Guess Company from email domain
-  if (!fields.company && fields.email) {
+  // Fallback: Guess Company from email domain (always try)
+  if (fields.email) {
     const domainMatch = fields.email.match(/@([A-Za-z0-9.-]+)/);
     if (domainMatch) {
-      let domain = domainMatch[1]; // "openai.com"
-      domain = domain.split(".")[0]; // "openai"
-      fields.company = domain.charAt(0).toUpperCase() + domain.slice(1);
+      let domain = domainMatch[1].split(".")[0]; // take first part
+      domain = domain.charAt(0).toUpperCase() + domain.slice(1);
+      if (!companyLine) {
+        companyLine = domain;
+      }
     }
+  }
+
+  if (companyLine) {
+    fields.company = companyLine;
   }
 
   // Remaining lines → address
@@ -666,8 +672,6 @@ function parseOCRText(text) {
 
   return fields;
 }
-
-
 
 // --- OCR endpoint ---
 router.post("/scan", auth(), upload.single("image"), async (req, res) => {
