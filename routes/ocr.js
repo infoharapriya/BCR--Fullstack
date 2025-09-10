@@ -571,17 +571,21 @@ function parseOCRText(text) {
 
 
 // --- OCR endpoint ---
-app.post("/api/ocr/scan", upload.single("image"), async (req, res) => {
+router.post("/scan", auth(), upload.single("image"), async (req, res) => {
   try {
-    const text = await tesseract.recognize(req.file.path, {
-      lang: "eng",
-      psm: 6, // assume a single block of text
-    });
+    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
 
-    const parsed = parseOCRText(text); // your custom parser
-    res.json({ raw: text, fields: parsed });
+    const { data: { text } } = await Tesseract.recognize(req.file.buffer, "eng");
+
+    const parsed = parseOCRText(text);
+
+    res.json({
+      raw: text,
+      fields: parsed,
+    });
   } catch (err) {
-    res.status(500).json({ error: "OCR failed" });
+    console.error("OCR error:", err.message);
+    res.status(500).json({ message: "OCR failed" });
   }
 });
 /**
