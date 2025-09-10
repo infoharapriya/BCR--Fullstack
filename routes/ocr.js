@@ -576,8 +576,7 @@ function parseOCRText(text) {
     name: "",
     designation: "",
     company: "",
-    number: "",   // landline or local phone
-    mobile: "",   // strictly numbers starting with +
+    number: "",   // strictly numbers starting with +
     email: "",
     site: "",
     address: "",
@@ -591,8 +590,8 @@ function parseOCRText(text) {
 
   // Regex patterns
   const emailRegex = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
-  const phoneRegex = /(\+?\d{1,3}[-.\s]?)?(\(?\d{2,5}\)?[-.\s]?)?\d{5,10}/;
-  const urlRegex   = /\b((https?:\/\/|www\.)[^\s]+|[a-z0-9-]+\.(com|net|org|in|co|io|ai))\b/i;
+  const mobileRegex = /^\+[\d\s-]{8,15}$/; // only numbers starting with +
+  const urlRegex = /\b((https?:\/\/|www\.)[^\s]+|[a-z0-9-]+\.(com|net|org|in|co|io|ai))\b/i;
 
   // Extract emails, phones, websites
   for (let line of lines) {
@@ -602,15 +601,9 @@ function parseOCRText(text) {
       continue;
     }
 
-    // Mobile (line starts with +)
-    if (!fields.mobile && line.startsWith("+") && phoneRegex.test(line)) {
-      fields.mobile = line.match(phoneRegex)[0];
-      continue;
-    }
-
-    // Other numbers
-    if (!fields.number && phoneRegex.test(line)) {
-      fields.number = line.match(phoneRegex)[0];
+    // Mobile (only + numbers)
+    if (!fields.number && mobileRegex.test(line)) {
+      fields.number = line.match(mobileRegex)[0];
       continue;
     }
 
@@ -621,9 +614,9 @@ function parseOCRText(text) {
     }
   }
 
-  // Guess Name
+  // Guess Name (must be clean text, no digits/@)
   const possibleNames = lines.filter(
-    l => !/[0-9@]/.test(l) && l.split(" ").length <= 4
+    l => /^[A-Za-z\s]{2,40}$/.test(l) && l.split(" ").length <= 4
   );
   if (possibleNames.length) {
     fields.name = possibleNames[0];
@@ -631,13 +624,15 @@ function parseOCRText(text) {
 
   // Fallback: Extract name from email (before @)
   if (!fields.name && fields.email) {
-    let username = fields.email.split("@")[0]; // "john.smith"
-    username = username.replace(/[._-]/g, " "); // replace . _ - with space
+    let username = fields.email.split("@")[0]; // e.g. "john.smith"
+    username = username.replace(/\d+/g, "");   // remove digits
+    username = username.replace(/[._-]/g, " "); // replace . _ - with spaces
     username = username
       .split(" ")
+      .filter(Boolean)
       .map(w => w.charAt(0).toUpperCase() + w.slice(1))
       .join(" ");
-    fields.name = username; // "John Smith"
+    if (username) fields.name = username;
   }
 
   // Guess Job Title
@@ -664,13 +659,14 @@ function parseOCRText(text) {
 
   // Remaining lines → address
   const used = new Set(
-    [fields.name, fields.designation, fields.company, fields.number, fields.mobile, fields.email, fields.site].filter(Boolean)
+    [fields.name, fields.designation, fields.company, fields.number, fields.email, fields.site].filter(Boolean)
   );
   const addressLines = lines.filter(l => ![...used].some(u => l.includes(u)));
   if (addressLines.length) fields.address = addressLines.join(", ");
 
   return fields;
 }
+
 
 
 // --- OCR endpoint ---
