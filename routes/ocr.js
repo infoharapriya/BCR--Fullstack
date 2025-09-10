@@ -414,82 +414,156 @@ const upload = multer({
 
 //   return fields;
 // }
+// function parseOCRText(text) {
+//   const fields = { 
+//     name: "", 
+//     email: "", 
+//     number: "", 
+//     designation: "", 
+//     company: "", 
+//     site: "", 
+//     address: "" 
+//   };
+
+//   const lines = text
+//     .split(/\r?\n/)
+//     .map(l => l.replace(/\s+/g, " ").trim())
+//     .filter(l => l.length > 1);
+
+//   // Regex patterns
+//   const emailRegex = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
+//   // Require at least 10 digits (mobile/landline), avoid postal codes
+//   const phoneRegex = /(\+?\d{1,3}[-.\s]?)?(\(?\d{2,5}\)?[-.\s]?)?\d{6,}/;
+//   const siteRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/i;
+//   const designationKeywords = /\b(ceo|cto|coo|founder|director|manager|engineer|consultant|officer|president|chairman|head|lead|designer|analyst|architect)\b/i;
+//   const companyKeywords = /\b(pvt|ltd|private|limited|llp|inc|corp|technologies|solutions|systems|industries|enterprise|company|software)\b/i;
+
+//   // 1️⃣ Name
+//   if (!fields.name) {
+//     const possibleName = lines.find(l => 
+//       !l.includes("@") &&
+//       !/\d/.test(l) &&
+//       !designationKeywords.test(l) &&
+//       !companyKeywords.test(l) &&
+//       l.length < 40
+//     );
+//     if (possibleName) fields.name = possibleName;
+//   }
+
+//   // 2️⃣ Email
+//   if (!fields.email) {
+//     const emailLine = lines.find(l => emailRegex.test(l));
+//     if (emailLine) fields.email = emailLine.match(emailRegex)[0];
+//   }
+
+//   // 3️⃣ Phone Number (only numbers with ≥10 digits, ignore postal codes)
+//   if (!fields.number) {
+//     const phoneLine = lines.find(l => {
+//       if (!phoneRegex.test(l)) return false;
+//       const digits = l.replace(/[^\d+]/g, "");
+//       return digits.length >= 10 && digits.length <= 13; // typical phone number length
+//     });
+//     if (phoneLine) {
+//       fields.number = phoneLine.replace(/[^\d+]/g, "");
+//     }
+//   }
+
+//   // 4️⃣ Designation
+//   if (!fields.designation) {
+//     const desigLine = lines.find(l => designationKeywords.test(l));
+//     if (desigLine) fields.designation = desigLine;
+//   }
+
+//   // 5️⃣ Company
+//   if (!fields.company) {
+//     const compLine = lines.find(l => companyKeywords.test(l));
+//     if (compLine) fields.company = compLine;
+//   }
+
+//   // 6️⃣ Website
+//   if (!fields.site) {
+//     const siteLine = lines.find(l => siteRegex.test(l));
+//     if (siteLine) fields.site = siteLine.replace(/^(https?:\/\/)?(www\.)?/i, "");
+//   }
+
+//   // 7️⃣ Address = leftover lines
+//   fields.address = lines.filter(l =>
+//     !Object.values(fields).includes(l)
+//   ).join(", ");
+
+//   return fields;
+// }
+
+//10/09/2025
+
 function parseOCRText(text) {
-  const fields = { 
-    name: "", 
-    email: "", 
-    number: "", 
-    designation: "", 
-    company: "", 
-    site: "", 
-    address: "" 
+  const fields = {
+    name: "",
+    designation: "",
+    company: "",
+    number: "",
+    email: "",
+    site: "",
+    address: "",
   };
 
+  // Split into lines & clean
   const lines = text
     .split(/\r?\n/)
-    .map(l => l.replace(/\s+/g, " ").trim())
-    .filter(l => l.length > 1);
+    .map(l => l.trim())
+    .filter(l => l.length > 0);
 
   // Regex patterns
   const emailRegex = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
-  // Require at least 10 digits (mobile/landline), avoid postal codes
-  const phoneRegex = /(\+?\d{1,3}[-.\s]?)?(\(?\d{2,5}\)?[-.\s]?)?\d{6,}/;
-  const siteRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/i;
-  const designationKeywords = /\b(ceo|cto|coo|founder|director|manager|engineer|consultant|officer|president|chairman|head|lead|designer|analyst|architect)\b/i;
-  const companyKeywords = /\b(pvt|ltd|private|limited|llp|inc|corp|technologies|solutions|systems|industries|enterprise|company|software)\b/i;
+  const phoneRegex = /(\+?\d{1,3}[\s-]?)?(\(?\d{2,5}\)?[\s-]?)?\d{5,}/;
+  const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+|\b[a-z0-9-]+\.[a-z]{2,})/i;
 
-  // 1️⃣ Name
-  if (!fields.name) {
-    const possibleName = lines.find(l => 
-      !l.includes("@") &&
-      !/\d/.test(l) &&
-      !designationKeywords.test(l) &&
-      !companyKeywords.test(l) &&
-      l.length < 40
-    );
-    if (possibleName) fields.name = possibleName;
-  }
-
-  // 2️⃣ Email
-  if (!fields.email) {
-    const emailLine = lines.find(l => emailRegex.test(l));
-    if (emailLine) fields.email = emailLine.match(emailRegex)[0];
-  }
-
-  // 3️⃣ Phone Number (only numbers with ≥10 digits, ignore postal codes)
-  if (!fields.number) {
-    const phoneLine = lines.find(l => {
-      if (!phoneRegex.test(l)) return false;
-      const digits = l.replace(/[^\d+]/g, "");
-      return digits.length >= 10 && digits.length <= 13; // typical phone number length
-    });
-    if (phoneLine) {
-      fields.number = phoneLine.replace(/[^\d+]/g, "");
+  // Extract emails, phones, websites
+  for (let line of lines) {
+    if (!fields.email && emailRegex.test(line)) {
+      fields.email = line.match(emailRegex)[0];
+      continue;
+    }
+    if (!fields.number && phoneRegex.test(line)) {
+      fields.number = line.match(phoneRegex)[0];
+      continue;
+    }
+    if (!fields.site && urlRegex.test(line)) {
+      fields.site = line.match(urlRegex)[0];
+      continue;
     }
   }
 
-  // 4️⃣ Designation
-  if (!fields.designation) {
-    const desigLine = lines.find(l => designationKeywords.test(l));
-    if (desigLine) fields.designation = desigLine;
-  }
+  // Guess Name (first line without @, digits, www, etc.)
+  const possibleNames = lines.filter(
+    l => !/[0-9@]/.test(l) && l.split(" ").length <= 4
+  );
+  if (possibleNames.length) fields.name = possibleNames[0];
 
-  // 5️⃣ Company
-  if (!fields.company) {
-    const compLine = lines.find(l => companyKeywords.test(l));
-    if (compLine) fields.company = compLine;
-  }
+  // Guess Job Title (look for keywords)
+  const jobKeywords = /(Manager|Director|Engineer|Consultant|CEO|CTO|Sales|Executive|Officer|Head|Specialist|Lead|Designer|Developer)/i;
+  const jobLine = lines.find(l => jobKeywords.test(l));
+  if (jobLine) fields.designation = jobLine;
 
-  // 6️⃣ Website
-  if (!fields.site) {
-    const siteLine = lines.find(l => siteRegex.test(l));
-    if (siteLine) fields.site = siteLine.replace(/^(https?:\/\/)?(www\.)?/i, "");
-  }
+  // Guess Company (all caps or contains business words)
+  const companyKeywords = /(LTD|LLP|INC|PVT|TECH|TECHNOLOGIES|SOLUTIONS|SYSTEMS|CORP|COMPANY)/i;
+  const companyLine =
+    lines.find(l => companyKeywords.test(l)) ||
+    lines.find(l => l === l.toUpperCase() && l.length > 2);
+  if (companyLine) fields.company = companyLine;
 
-  // 7️⃣ Address = leftover lines
-  fields.address = lines.filter(l =>
-    !Object.values(fields).includes(l)
-  ).join(", ");
+  // Remaining lines → address
+  const used = new Set([
+    fields.name,
+    fields.designation,
+    fields.company,
+    fields.number,
+    fields.email,
+    fields.site,
+  ].filter(Boolean));
+
+  const addressLines = lines.filter(l => ![...used].some(u => l.includes(u)));
+  if (addressLines.length) fields.address = addressLines.join(", ");
 
   return fields;
 }
@@ -497,21 +571,17 @@ function parseOCRText(text) {
 
 
 // --- OCR endpoint ---
-router.post("/scan", auth(), upload.single("image"), async (req, res) => {
+app.post("/api/ocr/scan", upload.single("image"), async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
-
-    const { data: { text } } = await Tesseract.recognize(req.file.buffer, "eng");
-
-    const parsed = parseOCRText(text);
-
-    res.json({
-      raw: text,
-      fields: parsed,
+    const text = await tesseract.recognize(req.file.path, {
+      lang: "eng",
+      psm: 6, // assume a single block of text
     });
+
+    const parsed = parseOCRText(text); // your custom parser
+    res.json({ raw: text, fields: parsed });
   } catch (err) {
-    console.error("OCR error:", err.message);
-    res.status(500).json({ message: "OCR failed" });
+    res.status(500).json({ error: "OCR failed" });
   }
 });
 /**
