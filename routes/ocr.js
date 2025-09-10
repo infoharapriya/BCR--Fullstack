@@ -591,21 +591,24 @@ function parseOCRText(text) {
 
   // Regex patterns
   const emailRegex = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
-  const mobileRegex = /^\+[\d\s-]{8,15}$/; // only numbers starting with +
+  const mobileRegex = /\+[\d][\d\s-]{6,15}\d/;  // find +numbers anywhere
   const urlRegex = /\b((https?:\/\/|www\.)[^\s]+|[a-z0-9-]+\.(com|net|org|in|co|io|ai))\b/i;
 
   // Extract emails, phones, websites
   for (let line of lines) {
+    // Email
     if (!fields.email && emailRegex.test(line)) {
       fields.email = line.match(emailRegex)[0];
       continue;
     }
 
+    // Mobile / Number (with +)
     if (!fields.number && mobileRegex.test(line)) {
       fields.number = line.match(mobileRegex)[0];
       continue;
     }
 
+    // Website
     if (!fields.site && urlRegex.test(line)) {
       fields.site = line.match(urlRegex)[0];
       continue;
@@ -647,7 +650,7 @@ function parseOCRText(text) {
     lines.find(l => companyKeywords.test(l)) ||
     lines.find(l => l === l.toUpperCase() && l.length > 2);
 
-  // Fallback: Guess Company from email domain (always try)
+  // Fallback: Guess Company from email domain
   if (fields.email) {
     const domainMatch = fields.email.match(/@([A-Za-z0-9.-]+)/);
     if (domainMatch) {
