@@ -336,84 +336,158 @@ const upload = multer({
   limits: { fileSize: 1 * 1024 * 1024 }, // 1 MB
 });
 
+// 10/09/2025
+// function parseOCRText(text) {
+//   const fields = {
+//     name: "",
+//     designation: "",
+//     company: "",
+//     number: "",
+//     email: "",
+//     site: "",
+//     address: "",
+//   };
+
+//   const lines = text
+//     .split(/\r?\n/)
+//     .map(l => l.trim())
+//     .filter(Boolean);
+
+//   // Helper regex patterns
+//   const emailRegex = /[\w.\-]+@[\w\-]+\.[A-Za-z]{2,}/;
+//   const phoneRegex = /(?:\+?\d{1,3}[-.\s]?)?(?:\(?\d{2,5}\)?[-.\s]?){1,2}\d{5,}/;
+//   const siteRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/i;
+//   const designationKeywords = /\b(ceo|cto|coo|founder|director|manager|engineer|developer|consultant|officer|president|chairman|head|lead|designer|analyst|architect)\b/i;
+//   const companyKeywords = /\b(pvt|ltd|private|limited|llp|inc|corp|corporation|group|technologies|solutions|systems|industries|enterprise|company|software)\b/i;
+//   const addressKeywords = /(road|street|avenue|nagar|block|sector|city|state|pin|zip|india|usa|uk|suite|building|floor)/i;
+
+//   // Regex to detect human names (first and last, capitalized)
+//   const nameRegex = /^[A-Z][a-z]+(?:\s[A-Z][a-z]+){0,2}$/;
+
+//   lines.forEach(line => {
+//     const digitsCount = (line.match(/\d/g) || []).length;
+
+//     // Email: any line containing @
+//     if (!fields.email && emailRegex.test(line)) {
+//       fields.email = line;
+//     }
+//     // Phone: any line with ≥10 digits
+//     else if (!fields.number && digitsCount >= 10 && phoneRegex.test(line)) {
+//       fields.number = line.replace(/[^\d+]/g, "");
+//     }
+//     // Website
+//     else if (!fields.site && siteRegex.test(line)) {
+//       fields.site = line.replace(/^(https?:\/\/)?(www\.)?/i, "");
+//     }
+//     // Designation
+//     else if (!fields.designation && designationKeywords.test(line)) {
+//       fields.designation = line;
+//     }
+//     // Company
+//     else if (!fields.company && companyKeywords.test(line)) {
+//       fields.company = line;
+//     }
+//     // Address (concatenate multiple lines)
+//     else if (addressKeywords.test(line)) {
+//       fields.address += (fields.address ? " " : "") + line;
+//     }
+//     // Name (detect with regex if not already filled)
+//     else if (!fields.name && nameRegex.test(line)) {
+//       fields.name = line;
+//     }
+//   });
+
+//   // Fallback: guess Name from lines not identified as other fields
+//   if (!fields.name) {
+//     const possibleName = lines.find(line => {
+//       return (
+//         line.length > 1 &&
+//         !line.includes("@") &&
+//         (line.match(/\d/g) || []).length < 2 &&
+//         !designationKeywords.test(line) &&
+//         !companyKeywords.test(line) &&
+//         !siteRegex.test(line)
+//       );
+//     });
+//     fields.name = possibleName || "";
+//   }
+
+//   return fields;
+// }
 
 function parseOCRText(text) {
-  const fields = {
-    name: "",
-    designation: "",
-    company: "",
-    number: "",
-    email: "",
-    site: "",
-    address: "",
+  const fields = { 
+    name: "", 
+    email: "", 
+    number: "", 
+    designation: "", 
+    company: "", 
+    site: "", 
+    address: "" 
   };
 
   const lines = text
     .split(/\r?\n/)
-    .map(l => l.trim())
-    .filter(Boolean);
+    .map(l => l.replace(/\s+/g, " ").trim())
+    .filter(l => l.length > 1);
 
-  // Helper regex patterns
-  const emailRegex = /[\w.\-]+@[\w\-]+\.[A-Za-z]{2,}/;
-  const phoneRegex = /(?:\+?\d{1,3}[-.\s]?)?(?:\(?\d{2,5}\)?[-.\s]?){1,2}\d{5,}/;
+  // Regex patterns
+  const emailRegex = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
+  const phoneRegex = /(\+?\d{1,3}[-.\s]?)?(\(?\d{2,5}\)?[-.\s]?)?\d{6,}/;
   const siteRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/i;
-  const designationKeywords = /\b(ceo|cto|coo|founder|director|manager|engineer|developer|consultant|officer|president|chairman|head|lead|designer|analyst|architect)\b/i;
-  const companyKeywords = /\b(pvt|ltd|private|limited|llp|inc|corp|corporation|group|technologies|solutions|systems|industries|enterprise|company|software)\b/i;
-  const addressKeywords = /(road|street|avenue|nagar|block|sector|city|state|pin|zip|india|usa|uk|suite|building|floor)/i;
+  const designationKeywords = /\b(ceo|cto|coo|founder|director|manager|engineer|consultant|officer|president|chairman|head|lead|designer|analyst|architect)\b/i;
+  const companyKeywords = /\b(pvt|ltd|private|limited|llp|inc|corp|technologies|solutions|systems|industries|enterprise|company|software)\b/i;
 
-  // Regex to detect human names (first and last, capitalized)
-  const nameRegex = /^[A-Z][a-z]+(?:\s[A-Z][a-z]+){0,2}$/;
-
-  lines.forEach(line => {
-    const digitsCount = (line.match(/\d/g) || []).length;
-
-    // Email: any line containing @
-    if (!fields.email && emailRegex.test(line)) {
-      fields.email = line;
-    }
-    // Phone: any line with ≥10 digits
-    else if (!fields.number && digitsCount >= 10 && phoneRegex.test(line)) {
-      fields.number = line.replace(/[^\d+]/g, "");
-    }
-    // Website
-    else if (!fields.site && siteRegex.test(line)) {
-      fields.site = line.replace(/^(https?:\/\/)?(www\.)?/i, "");
-    }
-    // Designation
-    else if (!fields.designation && designationKeywords.test(line)) {
-      fields.designation = line;
-    }
-    // Company
-    else if (!fields.company && companyKeywords.test(line)) {
-      fields.company = line;
-    }
-    // Address (concatenate multiple lines)
-    else if (addressKeywords.test(line)) {
-      fields.address += (fields.address ? " " : "") + line;
-    }
-    // Name (detect with regex if not already filled)
-    else if (!fields.name && nameRegex.test(line)) {
-      fields.name = line;
-    }
-  });
-
-  // Fallback: guess Name from lines not identified as other fields
+  // 1️⃣ Name: pick first line that looks like a human name
   if (!fields.name) {
-    const possibleName = lines.find(line => {
-      return (
-        line.length > 1 &&
-        !line.includes("@") &&
-        (line.match(/\d/g) || []).length < 2 &&
-        !designationKeywords.test(line) &&
-        !companyKeywords.test(line) &&
-        !siteRegex.test(line)
-      );
-    });
-    fields.name = possibleName || "";
+    const possibleName = lines.find(l => 
+      !l.includes("@") &&
+      !/\d/.test(l) &&
+      !designationKeywords.test(l) &&
+      !companyKeywords.test(l) &&
+      l.length < 40
+    );
+    if (possibleName) fields.name = possibleName;
   }
+
+  // 2️⃣ Email
+  if (!fields.email) {
+    const emailLine = lines.find(l => emailRegex.test(l));
+    if (emailLine) fields.email = emailLine.match(emailRegex)[0];
+  }
+
+  // 3️⃣ Phone Number
+  if (!fields.number) {
+    const phoneLine = lines.find(l => phoneRegex.test(l));
+    if (phoneLine) fields.number = phoneLine.replace(/[^\d+]/g, "");
+  }
+
+  // 4️⃣ Designation
+  if (!fields.designation) {
+    const desigLine = lines.find(l => designationKeywords.test(l));
+    if (desigLine) fields.designation = desigLine;
+  }
+
+  // 5️⃣ Company
+  if (!fields.company) {
+    const compLine = lines.find(l => companyKeywords.test(l));
+    if (compLine) fields.company = compLine;
+  }
+
+  // 6️⃣ Website
+  if (!fields.site) {
+    const siteLine = lines.find(l => siteRegex.test(l));
+    if (siteLine) fields.site = siteLine.replace(/^(https?:\/\/)?(www\.)?/i, "");
+  }
+
+  // 7️⃣ Address = leftover lines
+  fields.address = lines
+    .filter(l => !Object.values(fields).includes(l))
+    .join(", ");
 
   return fields;
 }
+
 
 
 // --- OCR endpoint ---
