@@ -541,7 +541,7 @@ function parseOCRText(text) {
   if (possibleNames.length) fields.name = possibleNames[0];
 
   // Guess Job Title (look for keywords)
-  const jobKeywords = /(Manager|Director|Engineer|Consultant|CEO|CTO|Sales|Executive|Officer|Head|Specialist|Lead|Designer|Developer)/i;
+  const jobKeywords = /(Manager|Director|Managing Director|Sr. Sales Manager|Engineer|Consultant|CEO|CTO|Sales|Executive|Officer|Head|Specialist|Lead|Designer|Developer)/i;
   const jobLine = lines.find(l => jobKeywords.test(l));
   if (jobLine) fields.designation = jobLine;
 
