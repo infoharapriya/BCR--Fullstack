@@ -319,22 +319,10 @@
 //   return fields;
 // }
 
-import express from "express";
-import multer from "multer";
-// import fetch from "node-fetch";
-// import FormData from "form-data";
-import auth from "../middleware/auth.js";
-import OCRresult from "../models/OCRresult.js";
-import ExcelJS from "exceljs";
-import Tesseract from "tesseract.js"; // ✅ Added import
 
-const router = express.Router();
 
-// ✅ Limit file size to 1MB
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 1 * 1024 * 1024 }, // 1 MB
-});
+//REGEX FOR FIELDS 
+
 
 // 10/09/2025
 // function parseOCRText(text) {
@@ -570,6 +558,25 @@ const upload = multer({
 //   return fields;
 // }
 
+import express from "express";
+import multer from "multer";
+// import fetch from "node-fetch";
+// import FormData from "form-data";
+import auth from "../middleware/auth.js";
+import OCRresult from "../models/OCRresult.js";
+import ExcelJS from "exceljs";
+import Tesseract from "tesseract.js"; // ✅ Added import
+
+const router = express.Router();
+
+// ✅ Limit file size to 1MB
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 1 * 1024 * 1024 }, // 1 MB
+});
+
+
+
 //again- 10/09/2025
 
 function parseOCRText(text) {
@@ -583,39 +590,60 @@ function parseOCRText(text) {
     address: "",
   };
 
-  // Split into lines & clean
+  // --- Clean raw text ---
+  const cleanText = text.replace(/\s+/g, " ").trim();
+
+  // --- Split into lines for name/address fallback ---
   const lines = text
     .split(/\r?\n/)
     .map(l => l.trim())
     .filter(l => l.length > 0);
 
-  // Regex patterns
+  // --- Regex patterns ---
   const emailRegex = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
-  const mobileRegex = /\+[\d][\d\s-]{6,15}\d/;  // find +numbers anywhere
-  const urlRegex = /\b((https?:\/\/|www\.)[^\s]+|[a-z0-9-]+\.(com|net|org|in|co|io|ai))\b/i;
+  const mobileRegex = /\+?\d[\d\s-]{6,15}\d/;
+  const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+|[a-z0-9-]+\.[a-z]{2,10})/i;
+  const jobKeywords = /\b(Manager|Director|Managing Director|Engineer|Consultant|CEO|CTO|CFO|COO|Founder|Sales|Executive|Officer|Head|Specialist|Lead|Designer|Developer)\b/i;
+  const companyKeywords = /\b(LTD|LLP|INC|PVT|TECH|TECHNOLOGIES|SOLUTIONS|SYSTEMS|CORP|COMPANY|Limited|Private|Incorporated)\b/i;
 
-  // Extract emails, phones, websites
-  for (let line of lines) {
-    // Email
-    if (!fields.email && emailRegex.test(line)) {
-      fields.email = line.match(emailRegex)[0];
-      continue;
-    }
+  // --- Extract email ---
+  const emailMatch = cleanText.match(emailRegex);
+  if (emailMatch) fields.email = emailMatch[0];
 
-    // Mobile / Number (with +)
-    if (!fields.number && mobileRegex.test(line)) {
-      fields.number = line.match(mobileRegex)[0];
-      continue;
-    }
+  // --- Extract phone ---
+  const mobileMatch = cleanText.match(mobileRegex);
+  if (mobileMatch) fields.number = mobileMatch[0].replace(/\s+/g, "");
 
-    // Website
-    if (!fields.site && urlRegex.test(line)) {
-      fields.site = line.match(urlRegex)[0];
-      continue;
+  // --- Extract website ---
+  const siteMatch = cleanText.match(urlRegex);
+  if (siteMatch) fields.site = siteMatch[0];
+
+  // --- Extract designation (from raw text) ---
+  const designationMatch = cleanText.match(jobKeywords);
+  if (designationMatch) {
+    // Find the full phrase containing the designation
+    const foundLine = lines.find(l => jobKeywords.test(l));
+    fields.designation = foundLine || designationMatch[0];
+  }
+
+  // --- Extract company (from raw text) ---
+  const companyMatch = cleanText.match(companyKeywords);
+  if (companyMatch) {
+    const foundLine = lines.find(l => companyKeywords.test(l));
+    fields.company = foundLine || companyMatch[0];
+  }
+
+  // --- Fallback company: from email domain ---
+  if (!fields.company && fields.email) {
+    const domainMatch = fields.email.match(/@([A-Za-z0-9.-]+)/);
+    if (domainMatch) {
+      let domain = domainMatch[1].split(".")[0];
+      domain = domain.charAt(0).toUpperCase() + domain.slice(1);
+      fields.company = domain;
     }
   }
 
-  // Guess Name from clean text
+  // --- Guess Name ---
   const possibleNames = lines.filter(
     l => /^[A-Za-z\s]{2,40}$/.test(l) && l.split(" ").length <= 4
   );
@@ -623,54 +651,24 @@ function parseOCRText(text) {
     fields.name = possibleNames[0];
   }
 
-  // Fallback: Extract name from email (before @)
-  if (fields.email) {
-    let username = fields.email.split("@")[0]; // before @
-    username = username.replace(/\d+/g, "");   // remove digits
-    username = username.replace(/[._-]/g, " "); // replace . _ -
+  // Fallback: from email username
+  if (!fields.name && fields.email) {
+    let username = fields.email.split("@")[0];
+    username = username.replace(/\d+/g, "");
+    username = username.replace(/[._-]/g, " ");
     username = username
       .split(" ")
       .filter(Boolean)
       .map(w => w.charAt(0).toUpperCase() + w.slice(1))
       .join(" ");
-
-    if (!fields.name && username) {
-      fields.name = username;
-    }
+    if (username) fields.name = username;
   }
 
-  // Guess Job Title
-  const jobKeywords = /(Manager|Director|Managing Director|Engineer|Consultant|CEO|CTO|Sales|Executive|Officer|Head|Specialist|Lead|Designer|Developer)/i;
-  const jobLine = lines.find(l => jobKeywords.test(l));
-  if (jobLine) fields.designation = jobLine;
-
-  // Guess Company from text
-  const companyKeywords = /(LTD|LLP|INC|PVT|TECH|TECHNOLOGIES|SOLUTIONS|SYSTEMS|CORP|COMPANY)/i;
-  let companyLine =
-    lines.find(l => companyKeywords.test(l)) ||
-    lines.find(l => l === l.toUpperCase() && l.length > 2);
-
-  // Fallback: Guess Company from email domain
-  if (fields.email) {
-    const domainMatch = fields.email.match(/@([A-Za-z0-9.-]+)/);
-    if (domainMatch) {
-      let domain = domainMatch[1].split(".")[0]; // take first part
-      domain = domain.charAt(0).toUpperCase() + domain.slice(1);
-      if (!companyLine) {
-        companyLine = domain;
-      }
-    }
-  }
-
-  if (companyLine) {
-    fields.company = companyLine;
-  }
-
-  // Remaining lines → address
+  // --- Address (everything else that’s not already used) ---
   const used = new Set(
     [fields.name, fields.designation, fields.company, fields.number, fields.email, fields.site].filter(Boolean)
   );
-  const addressLines = lines.filter(l => ![...used].some(u => l.includes(u)));
+  const addressLines = lines.filter(l => !used.has(l));
   if (addressLines.length) fields.address = addressLines.join(", ");
 
   return fields;
