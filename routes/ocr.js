@@ -887,7 +887,7 @@ router.get("/history", auth(), async (req, res) => {
     const docs = await OCRresult.find(query)
       .populate("event", "name")
       .sort({ createdAt: 1 })  // ascending order
-      .limit(Number(limit) || 50);
+      .limit(Number(limit) || 100);
 
     res.json(docs);
   } catch (err) {
