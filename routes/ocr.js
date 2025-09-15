@@ -887,7 +887,7 @@ router.get("/history", auth(), async (req, res) => {
     const docs = await OCRresult.find(query)
       .populate("event", "name")
       .sort({ createdAt: 1 })  // ascending order
-      .limit(Number(limit) || 100);
+      .limit(Number(limit) || 200);
 
     res.json(docs);
   } catch (err) {
@@ -909,7 +909,7 @@ router.get("/export", auth(), async (req, res) => {
     const rows = await OCRresult.find(query)
       .populate("event", "name")
       .sort({ createdAt: 1 })
-      .limit(Number(limit) || 50);
+      .limit(Number(limit) || 200);
 
       // res.json(docs);
 
