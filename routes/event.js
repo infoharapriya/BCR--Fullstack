@@ -5,7 +5,7 @@ import auth from "../middleware/auth.js";
 
 const router = express.Router();
 
-// ❌ Only admin can create/update/delete
+//  Only admin can create/update/delete
 router.post("/", auth("admin"), async (req, res) => {
   res.json({ message: "Event created" });
 });
@@ -18,7 +18,7 @@ router.delete("/:id", auth("admin"), async (req, res) => {
   res.json({ message: "Event deleted" });
 });
 
-// ✅ Both admin + user can view events
+//  Both admin + user can view events
 router.get("/", auth(), async (req, res) => {
   res.json({ message: "Events list" });
 });

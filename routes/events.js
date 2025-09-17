@@ -20,7 +20,8 @@ router.post("/", auth("admin"), async (req, res) => {
     if (!name) return res.status(400).json({ message: "Name required" });
 
     const exists = await Event.findOne({ name });
-    if (exists) return res.status(400).json({ message: "Event already exists" });
+    if (exists)
+      return res.status(400).json({ message: "Event already exists" });
 
     const ev = await Event.create({ name });
     res.json(ev);

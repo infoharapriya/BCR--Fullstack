@@ -1,562 +1,3 @@
-// import express from "express";
-// import multer from "multer";
-// import fetch from "node-fetch";
-// import FormData from "form-data";
-// import auth from "../middleware/auth.js";
-// import OCRresult from "../models/OCRresult.js";
-// import { Readable } from "stream";
-// // import dotenv from dotenv;
-// // dotenv.config();
-
-
-// const router = express.Router();
-// const upload = multer({ storage: multer.memoryStorage() });
-
-// function extractFields(text) {
-//   const fields = { name: "", designation: "", company: "", number: "", email: "", site: "", address: "" };
-//   const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-
-//   // email
-//   const e = lines.find(l => l.includes("@") && l.includes("."));
-//   if (e) fields.email = e;
-
-//   // phone
-//   for (const l of lines) {
-//     const digits = (l.match(/\d/g) || []).length;
-//     if (!fields.number && digits >= 8) {
-//       fields.number = l;
-//       break;
-//     }
-//   }
-
-//   // site
-//   const s = lines.find(l => /www\.|http/i.test(l));
-//   if (s) fields.site = s;
-
-//   // designation
-//   const desigK = ["director","manager","ceo","cto","cfo","founder","engineer","marketing","owner","sales","lead","consultant"];
-//   const d = lines.find(l => desigK.some(k => l.toLowerCase().includes(k)));
-//   if (d) fields.designation = d;
-
-//   // company (all caps)
-//   const c = lines.find(l => l === l.toUpperCase() && !l.includes("@") && !/www\.|http/i.test(l) && l.length > 2);
-//   if (c) fields.company = c;
-
-//   // name
-//   const n = lines.find(l => {
-//     if (l === fields.company || l === fields.designation) return false;
-//     if (/@|www\.|http/.test(l)) return false;
-//     const parts = l.split(/\s+/);
-//     return parts.length === 2 && parts.every(p => /^[A-Z][a-zA-Z]+$/.test(p));
-//   });
-//   if (n) fields.name = n;
-
-//   // address (bottom line with numbers/commas)
-//   const rev = [...lines].reverse();
-//   const a = rev.find(l => l.length > 12 && /[,0-9]/.test(l) && !/@|www\.|http/.test(l));
-//   if (a) fields.address = a;
-
-//   return fields;
-// }
-
-
-// router.post("/scan", auth(), upload.single("image"), async (req, res) => {
-//   if (!req.file) {
-//     return res.status(400).json({ message: "No file uploaded" });
-//   }
-
-//   try {
-//     // Run OCR locally with Tesseract.js
-//     const { data: { text } } = await Tesseract.recognize(req.file.buffer, "eng");
-
-//     res.json({ raw: text, fields: extractFields(text) });
-//   } catch (err) {
-//     console.error("Tesseract OCR error:", err);
-//     res.status(500).json({ message: "OCR failed", error: err.message });
-//   }
-// });
-// // router.post("/scan", auth(), upload.single("image"), async (req, res) => {
-// //   if (!req.file) {
-// //     return res.status(400).json({ message: "No file uploaded" });
-// //   }
-
-// //   try {
-// //     const formData = new FormData();
-// //     formData.append("apikey", process.env.FREE_OCR_SPACE_API_KEY);
-// //     formData.append("language", "eng");
-// //     formData.append("isOverlayRequired", "false");
-// //     formData.append("file", req.file.buffer, {
-// //   filename: req.file.originalname,
-// //   contentType: req.file.mimetype,
-// // });
-   
-
-// // console.log("Uploading file:", {
-// //   name: req.file.originalname,
-// //   size: req.file.size,
-// //   type: req.file.mimetype,
-// // });
-
-
-// //     const response = await fetch("https://api.ocr.space/parse/image", {
-// //       method: "POST",
-// //       body: formData,
-// //       headers: formData.getHeaders(),
-// //     });
-
-// //     const result = await response.json();
-// //     console.log("OCR API result:", JSON.stringify(result, null, 2));
-
-// //     if (result.IsErroredOnProcessing) {
-// //       return res.status(500).json({
-// //         message: "OCR API error",
-// //         error: result.ErrorMessage,
-// //       });
-// //     }
-
-// //     const text = result.ParsedResults?.[0]?.ParsedText || "";
-// //     return res.json({ raw: text, fields: extractFields(text) });
-// //   } catch (e) {
-// //     console.error("OCR API failed:", e);
-// //     return res.status(500).json({ message: "OCR failed", error: e.message });
-// //   }
-// // });
-
-
-
-// /**
-//  * Save Scanned Card
-//  */
-// router.post("/save", auth(), async (req, res) => {
-//   try {
-//     const { name, designation, company, number, email, site, address, event, type, raw } = req.body;
-
-//     const exists = await OCRresult.findOne({ $or: [{ email }, { number }] });
-//     if (exists) {
-//       return res.status(400).json({ message: "Duplicate entry found" });
-//     }
-
-//     const card = new OCRresult({
-//       name,
-//       designation,
-//       company,
-//       number,
-//       email,
-//       site,
-//       address,
-//       event,
-//       type,
-//       raw,
-//       createdBy: req.user.id,
-//     });
-
-//     await card.save();
-//     res.json({ message: "Card saved", card });
-//   } catch (err) {
-//     console.error("Save error:", err);
-//     res.status(500).json({ message: "Server error" });
-//   }
-// });
-
-// /**
-//  * Fetch History
-//  */
-// router.get("/history", auth(), async (req, res) => {
-//   try {
-//     const docs = await OCRresult.find({ createdBy: req.user.id })
-//       .sort({ createdAt: -1 })
-//       .limit(50);
-//     res.json(docs);
-//   } catch (err) {
-//     console.error("History fetch error:", err);
-//     res.status(500).json({ message: "Server error" });
-//   }
-// });
-
-// /**
-//  * Get Single Record
-//  */
-// router.get("/:id", auth(), async (req, res) => {
-//   try {
-//     const record = await OCRresult.findOne({
-//       _id: req.params.id,
-//       createdBy: req.user.id,
-//     });
-
-//     if (!record) return res.status(404).json({ error: "Record not found" });
-
-//     res.json(record);
-//   } catch (err) {
-//     console.error("Fetch single record error:", err);
-//     res.status(500).json({ error: "Failed to fetch record" });
-//   }
-// });
-
-// /**
-//  * Update Record
-//  */
-// router.put("/update/:id", auth(), async (req, res) => {
-//   try {
-//     const { id } = req.params;
-//     const updated = await OCRresult.findOneAndUpdate(
-//       { _id: id, createdBy: req.user.id },
-//       req.body,
-//       { new: true, runValidators: true }
-//     );
-
-//     if (!updated) {
-//       return res.status(404).json({ message: "Record not found or not authorized" });
-//     }
-
-//     res.json(updated);
-//   } catch (err) {
-//     console.error("Update error:", err);
-//     res.status(500).json({ message: "Server error" });
-//   }
-// });
-
-// /**
-//  * Delete Record
-//  */
-// router.delete("/delete/:id", auth(), async (req, res) => {
-//   try {
-//     const { id } = req.params;
-//     const deleted = await OCRresult.findOneAndDelete({
-//       _id: id,
-//       createdBy: req.user.id,
-//     });
-
-//     if (!deleted) {
-//       return res.status(404).json({ message: "Record not found or not authorized" });
-//     }
-
-//     res.json({ message: "Deleted successfully" });
-//   } catch (err) {
-//     console.error("Delete error:", err);
-//     res.status(500).json({ message: "Server error" });
-//   }
-// });
-
-// export default router;
-
-
-//09/09/2025 - REGEX
-/**
- * Extract fields from OCR text
- */
-// --- Helper parser ---
-// function parseOCRText(text) {
-//   const fields = {
-//     name: "",
-//     designation: "",
-//     company: "",
-//     number: "",
-//     email: "",
-//     site: "",
-//     address: "",
-//   };
-
-//   const lines = text
-//     .split(/\r?\n/)
-//     .map(l => l.trim())
-//     .filter(Boolean);
-
-//   lines.forEach(line => {
-//     // Email
-//     if (!fields.email && /^[\w.\-]+@[\w\-]+\.[A-Za-z]{2,}$/i.test(line)) {
-//       fields.email = line;
-//     }
-//     // Phone numbers (handles +91, spaces, dashes, brackets)
-//     else if (
-//       !fields.number &&
-//       /(\+?\d{1,3}[-.\s]?)?(\(?\d{3,5}\)?[-.\s]?)?\d{3,5}[-.\s]?\d{3,5}/.test(line)
-//     ) {
-//       fields.number = line.replace(/[^\d+]/g, "").replace(/(\d{5})(?=\d)/g, "$1 "); // format
-//     }
-//     // Website
-//     else if (!fields.site && /(https?:\/\/[^\s]+|www\.[^\s]+)/i.test(line)) {
-//       fields.site = line.replace(/^(https?:\/\/)?(www\.)?/i, "");
-//     }
-//     // Designation
-//     else if (
-//       !fields.designation &&
-//       /\b(ceo|cto|coo|founder|director|manager|engineer|developer|consultant|officer|president|chairman|head|lead)\b/i.test(
-//         line
-//       )
-//     ) {
-//       fields.designation = line;
-//     }
-//     // Company (keywords + suffix detection)
-//     else if (
-//       !fields.company &&
-//       /\b(pvt|ltd|private|limited|llp|inc|corp|corporation|group|technologies|solutions|systems|industries|enterprise|company)\b/i.test(
-//         line
-//       )
-//     ) {
-//       fields.company = line;
-//     }
-//     // Address (keywords for locations)
-//     else if (
-//       /(road|street|avenue|nagar|block|sector|city|state|pin|zip|india|usa|uk)/i.test(
-//         line
-//       )
-//     ) {
-//       fields.address += (fields.address ? " " : "") + line;
-//     }
-//   });
-
-//   // Guess Name → must not look like designation/company/email/number
-//   if (!fields.name) {
-//     const possibleName = lines.find(
-//       line =>
-//         !line.match(
-//           /(director|manager|engineer|developer|pvt|ltd|software|solutions|www\.|\@|\d{5,}|technologies|systems|inc|corp)/i
-//         ) && /^[A-Z][a-z]+(\s[A-Z][a-z]+){0,2}$/.test(line) // looks like a human name
-//     );
-//     fields.name = possibleName || "";
-//   }
-
-//   return fields;
-// }
-
-
-
-//REGEX FOR FIELDS 
-
-
-// 10/09/2025
-// function parseOCRText(text) {
-//   const fields = {
-//     name: "",
-//     designation: "",
-//     company: "",
-//     number: "",
-//     email: "",
-//     site: "",
-//     address: "",
-//   };
-
-//   const lines = text
-//     .split(/\r?\n/)
-//     .map(l => l.trim())
-//     .filter(Boolean);
-
-//   // Helper regex patterns
-//   const emailRegex = /[\w.\-]+@[\w\-]+\.[A-Za-z]{2,}/;
-//   const phoneRegex = /(?:\+?\d{1,3}[-.\s]?)?(?:\(?\d{2,5}\)?[-.\s]?){1,2}\d{5,}/;
-//   const siteRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/i;
-//   const designationKeywords = /\b(ceo|cto|coo|founder|director|manager|engineer|developer|consultant|officer|president|chairman|head|lead|designer|analyst|architect)\b/i;
-//   const companyKeywords = /\b(pvt|ltd|private|limited|llp|inc|corp|corporation|group|technologies|solutions|systems|industries|enterprise|company|software)\b/i;
-//   const addressKeywords = /(road|street|avenue|nagar|block|sector|city|state|pin|zip|india|usa|uk|suite|building|floor)/i;
-
-//   // Regex to detect human names (first and last, capitalized)
-//   const nameRegex = /^[A-Z][a-z]+(?:\s[A-Z][a-z]+){0,2}$/;
-
-//   lines.forEach(line => {
-//     const digitsCount = (line.match(/\d/g) || []).length;
-
-//     // Email: any line containing @
-//     if (!fields.email && emailRegex.test(line)) {
-//       fields.email = line;
-//     }
-//     // Phone: any line with ≥10 digits
-//     else if (!fields.number && digitsCount >= 10 && phoneRegex.test(line)) {
-//       fields.number = line.replace(/[^\d+]/g, "");
-//     }
-//     // Website
-//     else if (!fields.site && siteRegex.test(line)) {
-//       fields.site = line.replace(/^(https?:\/\/)?(www\.)?/i, "");
-//     }
-//     // Designation
-//     else if (!fields.designation && designationKeywords.test(line)) {
-//       fields.designation = line;
-//     }
-//     // Company
-//     else if (!fields.company && companyKeywords.test(line)) {
-//       fields.company = line;
-//     }
-//     // Address (concatenate multiple lines)
-//     else if (addressKeywords.test(line)) {
-//       fields.address += (fields.address ? " " : "") + line;
-//     }
-//     // Name (detect with regex if not already filled)
-//     else if (!fields.name && nameRegex.test(line)) {
-//       fields.name = line;
-//     }
-//   });
-
-//   // Fallback: guess Name from lines not identified as other fields
-//   if (!fields.name) {
-//     const possibleName = lines.find(line => {
-//       return (
-//         line.length > 1 &&
-//         !line.includes("@") &&
-//         (line.match(/\d/g) || []).length < 2 &&
-//         !designationKeywords.test(line) &&
-//         !companyKeywords.test(line) &&
-//         !siteRegex.test(line)
-//       );
-//     });
-//     fields.name = possibleName || "";
-//   }
-
-//   return fields;
-// }
-// function parseOCRText(text) {
-//   const fields = { 
-//     name: "", 
-//     email: "", 
-//     number: "", 
-//     designation: "", 
-//     company: "", 
-//     site: "", 
-//     address: "" 
-//   };
-
-//   const lines = text
-//     .split(/\r?\n/)
-//     .map(l => l.replace(/\s+/g, " ").trim())
-//     .filter(l => l.length > 1);
-
-//   // Regex patterns
-//   const emailRegex = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
-//   // Require at least 10 digits (mobile/landline), avoid postal codes
-//   const phoneRegex = /(\+?\d{1,3}[-.\s]?)?(\(?\d{2,5}\)?[-.\s]?)?\d{6,}/;
-//   const siteRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/i;
-//   const designationKeywords = /\b(ceo|cto|coo|founder|director|manager|engineer|consultant|officer|president|chairman|head|lead|designer|analyst|architect)\b/i;
-//   const companyKeywords = /\b(pvt|ltd|private|limited|llp|inc|corp|technologies|solutions|systems|industries|enterprise|company|software)\b/i;
-
-//   // 1️⃣ Name
-//   if (!fields.name) {
-//     const possibleName = lines.find(l => 
-//       !l.includes("@") &&
-//       !/\d/.test(l) &&
-//       !designationKeywords.test(l) &&
-//       !companyKeywords.test(l) &&
-//       l.length < 40
-//     );
-//     if (possibleName) fields.name = possibleName;
-//   }
-
-//   // 2️⃣ Email
-//   if (!fields.email) {
-//     const emailLine = lines.find(l => emailRegex.test(l));
-//     if (emailLine) fields.email = emailLine.match(emailRegex)[0];
-//   }
-
-//   // 3️⃣ Phone Number (only numbers with ≥10 digits, ignore postal codes)
-//   if (!fields.number) {
-//     const phoneLine = lines.find(l => {
-//       if (!phoneRegex.test(l)) return false;
-//       const digits = l.replace(/[^\d+]/g, "");
-//       return digits.length >= 10 && digits.length <= 13; // typical phone number length
-//     });
-//     if (phoneLine) {
-//       fields.number = phoneLine.replace(/[^\d+]/g, "");
-//     }
-//   }
-
-//   // 4️⃣ Designation
-//   if (!fields.designation) {
-//     const desigLine = lines.find(l => designationKeywords.test(l));
-//     if (desigLine) fields.designation = desigLine;
-//   }
-
-//   // 5️⃣ Company
-//   if (!fields.company) {
-//     const compLine = lines.find(l => companyKeywords.test(l));
-//     if (compLine) fields.company = compLine;
-//   }
-
-//   // 6️⃣ Website
-//   if (!fields.site) {
-//     const siteLine = lines.find(l => siteRegex.test(l));
-//     if (siteLine) fields.site = siteLine.replace(/^(https?:\/\/)?(www\.)?/i, "");
-//   }
-
-//   // 7️⃣ Address = leftover lines
-//   fields.address = lines.filter(l =>
-//     !Object.values(fields).includes(l)
-//   ).join(", ");
-
-//   return fields;
-// }
-
-//10/09/2025
-
-// function parseOCRText(text) {
-//   const fields = {
-//     name: "",
-//     designation: "",
-//     company: "",
-//     number: "",
-//     email: "",
-//     site: "",
-//     address: "",
-//   };
-
-//   // Split into lines & clean
-//   const lines = text
-//     .split(/\r?\n/)
-//     .map(l => l.trim())
-//     .filter(l => l.length > 0);
-
-//   // Regex patterns
-//   const emailRegex = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
-
-//   // const emailRegex = ([-!#-'*+/-9=?A-Z^-~]+(\.[-!#-'*+/-9=?A-Z^-~]+)*|"([]!#-[^-~ \t]|(\\[\t -~]))+")@([0-9A-Za-z]([0-9A-Za-z-]{0,61}[0-9A-Za-z])?(\.[0-9A-Za-z]([0-9A-Za-z-]{0,61}[0-9A-Za-z])?)*|\[((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])(\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])){3}|IPv6:((((0|[1-9A-Fa-f][0-9A-Fa-f]{0,3}):){6}|::((0|[1-9A-Fa-f][0-9A-Fa-f]{0,3}):){5}|[0-9A-Fa-f]{0,4}::((0|[1-9A-Fa-f][0-9A-Fa-f]{0,3}):){4}|(((0|[1-9A-Fa-f][0-9A-Fa-f]{0,3}):)?(0|[1-9A-Fa-f][0-9A-Fa-f]{0,3}))?::((0|[1-9A-Fa-f][0-9A-Fa-f]{0,3}):){3}|(((0|[1-9A-Fa-f][0-9A-Fa-f]{0,3}):){0,2}(0|[1-9A-Fa-f][0-9A-Fa-f]{0,3}))?::((0|[1-9A-Fa-f][0-9A-Fa-f]{0,3}):){2}|(((0|[1-9A-Fa-f][0-9A-Fa-f]{0,3}):){0,3}(0|[1-9A-Fa-f][0-9A-Fa-f]{0,3}))?::(0|[1-9A-Fa-f][0-9A-Fa-f]{0,3}):|(((0|[1-9A-Fa-f][0-9A-Fa-f]{0,3}):){0,4}(0|[1-9A-Fa-f][0-9A-Fa-f]{0,3}))?::)((0|[1-9A-Fa-f][0-9A-Fa-f]{0,3}):(0|[1-9A-Fa-f][0-9A-Fa-f]{0,3})|(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])(\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])){3})|(((0|[1-9A-Fa-f][0-9A-Fa-f]{0,3}):){0,5}(0|[1-9A-Fa-f][0-9A-Fa-f]{0,3}))?::(0|[1-9A-Fa-f][0-9A-Fa-f]{0,3})|(((0|[1-9A-Fa-f][0-9A-Fa-f]{0,3}):){0,6}(0|[1-9A-Fa-f][0-9A-Fa-f]{0,3}))?::)|(?!IPv6:)[0-9A-Za-z-]*[0-9A-Za-z]:[!-Z^-~]+)])/i
-//   const phoneRegex = /(\+?\d{1,3}[\s-]?)?(\(?\d{2,5}\)?[\s-]?)?\d{5,}/;
-//   const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+|\b[a-z0-9-]+\.[a-z]{2,})/i;
-
-//   // Extract emails, phones, websites
-//   for (let line of lines) {
-//     if (!fields.email && emailRegex.test(line)) {
-//       fields.email = line.match(emailRegex)[0];
-//       continue;
-//     }
-//     if (!fields.number && phoneRegex.test(line)) {
-//       fields.number = line.match(phoneRegex)[0];
-//       continue;
-//     }
-//     if (!fields.site && urlRegex.test(line)) {
-//       fields.site = line.match(urlRegex)[0];
-//       continue;
-//     }
-//   }
-
-//   // Guess Name (first line without @, digits, www, etc.)
-//   const possibleNames = lines.filter(
-//     l => !/[0-9@]/.test(l) && l.split(" ").length <= 4
-//   );
-//   if (possibleNames.length) fields.name = possibleNames[0];
-
-//   // Guess Job Title (look for keywords)
-//   const jobKeywords = /(Manager|Director|Managing Director|Sr. Sales Manager|Engineer|Consultant|CEO|CTO|Sales|Executive|Officer|Head|Specialist|Lead|Designer|Developer)/i;
-//   const jobLine = lines.find(l => jobKeywords.test(l));
-//   if (jobLine) fields.designation = jobLine;
-
-//   // Guess Company (all caps or contains business words)
-//   const companyKeywords = /(LTD|LLP|INC|PVT|TECH|TECHNOLOGIES|SOLUTIONS|SYSTEMS|CORP|COMPANY)/i;
-//   const companyLine =
-//     lines.find(l => companyKeywords.test(l)) ||
-//     lines.find(l => l === l.toUpperCase() && l.length > 2);
-//   if (companyLine) fields.company = companyLine;
-
-//   // Remaining lines → address
-//   const used = new Set([
-//     fields.name,
-//     fields.designation,
-//     fields.company,
-//     fields.number,
-//     fields.email,
-//     fields.site,
-//   ].filter(Boolean));
-
-//   const addressLines = lines.filter(l => ![...used].some(u => l.includes(u)));
-//   if (addressLines.length) fields.address = addressLines.join(", ");
-
-//   return fields;
-// }
 
 import express from "express";
 import multer from "multer";
@@ -565,114 +6,15 @@ import multer from "multer";
 import auth from "../middleware/auth.js";
 import OCRresult from "../models/OCRresult.js";
 import ExcelJS from "exceljs";
-import Tesseract from "tesseract.js"; // ✅ Added import
+import Tesseract from "tesseract.js"; //  Added import
 
 const router = express.Router();
 
-// ✅ Limit file size to 1MB
+//  Limit file size to 1MB
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 1 * 1024 * 1024 }, // 1 MB
 });
-
-
-
-//again- 11/09/2025
-
-// function parseOCRText(text) {
-//   const fields = {
-//     name: "",
-//     designation: "",
-//     company: "",
-//     number: "",   // strictly numbers starting with +
-//     email: "",
-//     site: "",
-//     address: "",
-//   };
-
-//   // --- Clean raw text ---
-//   const cleanText = text.replace(/\s+/g, " ").trim();
-
-//   // --- Split into lines for name/address fallback ---
-//   const lines = text
-//     .split(/\r?\n/)
-//     .map(l => l.trim())
-//     .filter(l => l.length > 0);
-
-//   // --- Regex patterns ---
-//   const emailRegex = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
-//   const mobileRegex = /\+?\d[\d\s-]{6,15}\d/;
-//   const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+|[a-z0-9-]+\.[a-z]{2,10})/i;
-//   const jobKeywords = /\b(Manager|Director|Managing Director|Engineer|Consultant|CEO|CTO|CFO|COO|Founder|Sales|Executive|Officer|Head|Specialist|Lead|Designer|Developer)\b/i;
-//   const companyKeywords = /\b(LTD|LLP|INC|PVT|TECH|TECHNOLOGIES|SOLUTIONS|SYSTEMS|CORP|COMPANY|Limited|Private|Incorporated)\b/i;
-
-//   // --- Extract email ---
-//   const emailMatch = cleanText.match(emailRegex);
-//   if (emailMatch) fields.email = emailMatch[0];
-
-//   // --- Extract phone ---
-//   const mobileMatch = cleanText.match(mobileRegex);
-//   if (mobileMatch) fields.number = mobileMatch[0].replace(/\s+/g, "");
-
-//   // --- Extract website ---
-//   const siteMatch = cleanText.match(urlRegex);
-//   if (siteMatch) fields.site = siteMatch[0];
-
-//   // --- Extract designation (from raw text) ---
-//   const designationMatch = cleanText.match(jobKeywords);
-//   if (designationMatch) {
-//     // Find the full phrase containing the designation
-//     const foundLine = lines.find(l => jobKeywords.test(l));
-//     fields.designation = foundLine || designationMatch[0];
-//   }
-
-//   // --- Extract company (from raw text) ---
-//   const companyMatch = cleanText.match(companyKeywords);
-//   if (companyMatch) {
-//     const foundLine = lines.find(l => companyKeywords.test(l));
-//     fields.company = foundLine || companyMatch[0];
-//   }
-
-//   // --- Fallback company: from email domain ---
-//   if (!fields.company && fields.email) {
-//     const domainMatch = fields.email.match(/@([A-Za-z0-9.-]+)/);
-//     if (domainMatch) {
-//       let domain = domainMatch[1].split(".")[0];
-//       domain = domain.charAt(0).toUpperCase() + domain.slice(1);
-//       fields.company = domain;
-//     }
-//   }
-
-//   // --- Guess Name ---
-//   const possibleNames = lines.filter(
-//     l => /^[A-Za-z\s]{2,40}$/.test(l) && l.split(" ").length <= 4
-//   );
-//   if (possibleNames.length) {
-//     fields.name = possibleNames[0];
-//   }
-
-//   // Fallback: from email username
-//   if (!fields.name && fields.email) {
-//     let username = fields.email.split("@")[0];
-//     username = username.replace(/\d+/g, "");
-//     username = username.replace(/[._-]/g, " ");
-//     username = username
-//       .split(" ")
-//       .filter(Boolean)
-//       .map(w => w.charAt(0).toUpperCase() + w.slice(1))
-//       .join(" ");
-//     if (username) fields.name = username;
-//   }
-
-//   // --- Address (everything else that’s not already used) ---
-//   const used = new Set(
-//     [fields.name, fields.designation, fields.company, fields.number, fields.email, fields.site].filter(Boolean)
-//   );
-//   const addressLines = lines.filter(l => !used.has(l));
-//   if (addressLines.length) fields.address = addressLines.join(", ");
-
-//   return fields;
-// }
 
 
 function parseOCRText(text) {
@@ -691,7 +33,10 @@ function parseOCRText(text) {
 
   // --- Clean text ---
   const cleanText = text.replace(/\s+/g, " ").trim();
-  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const lines = text
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
 
   // --- Regex patterns ---
   const emailRegex = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,15}\b/gi;
@@ -700,16 +45,40 @@ function parseOCRText(text) {
 
   // Expanded job keywords (multi-word support)
   const jobKeywords = [
-    "Managing Director", "Assistant Vice President", "Vice President",
-    "Software Engineer", "Senior Software Engineer", "Software Development Engineer",
-    "Business Development Executive", "Head of Operations", "Product Manager",
-    "Project Manager", "Marketing Manager", "Sales Executive", "Design Lead",
-    "Chief Executive Officer", "Chief Technology Officer", "Chief Financial Officer",
-    "Chief Operating Officer", "Consultant", "Specialist", "Engineer",
-    "Developer", "Designer", "Executive", "Officer", "Head", "Lead", "Manager", "Director", "Founder", "Partner"
+    "Managing Director",
+    "Assistant Vice President",
+    "Vice President",
+    "Software Engineer",
+    "Senior Software Engineer",
+    "Software Development Engineer",
+    "Business Development Executive",
+    "Head of Operations",
+    "Product Manager",
+    "Project Manager",
+    "Marketing Manager",
+    "Sales Executive",
+    "Design Lead",
+    "Chief Executive Officer",
+    "Chief Technology Officer",
+    "Chief Financial Officer",
+    "Chief Operating Officer",
+    "Consultant",
+    "Specialist",
+    "Engineer",
+    "Developer",
+    "Designer",
+    "Executive",
+    "Officer",
+    "Head",
+    "Lead",
+    "Manager",
+    "Director",
+    "Founder",
+    "Partner",
   ];
 
-  const companyKeywords = /\b(LTD|LLP|INC|PVT|TECH|TECHNOLOGIES|SOLUTIONS|SYSTEMS|CORP|COMPANY|ENTERPRISES|INDUSTRIES|GROUP|PRIVATE|LIMITED|INCORPORATED)\b/i;
+  const companyKeywords =
+    /\b(LTD|LLP|INC|PVT|TECH|TECHNOLOGIES|SOLUTIONS|SYSTEMS|CORP|COMPANY|ENTERPRISES|INDUSTRIES|GROUP|PRIVATE|LIMITED|INCORPORATED)\b/i;
 
   // --- Extract emails ---
   const emails = cleanText.match(emailRegex);
@@ -721,8 +90,10 @@ function parseOCRText(text) {
   // --- Extract phones ---
   const phones = cleanText.match(phoneRegex);
   if (phones) {
-    fields.numbers = [...new Set(phones.map(num => num.replace(/[^0-9+]/g, "")))];
-    fields.numbers = fields.numbers.map(num => {
+    fields.numbers = [
+      ...new Set(phones.map((num) => num.replace(/[^0-9+]/g, ""))),
+    ];
+    fields.numbers = fields.numbers.map((num) => {
       if (!num.startsWith("+") && num.length === 10) return "+91" + num;
       return num;
     });
@@ -732,20 +103,20 @@ function parseOCRText(text) {
   // --- Extract websites ---
   const sites = cleanText.match(urlRegex);
   if (sites) {
-    fields.sites = [...new Set(sites.map(s => s.replace(/[,;]$/, "")))];
+    fields.sites = [...new Set(sites.map((s) => s.replace(/[,;]$/, "")))];
     fields.site = fields.sites[0];
   }
 
   // --- Extract designation (multi-word support) ---
-  const designationLine = lines.find(l =>
-    jobKeywords.some(job => l.toLowerCase().includes(job.toLowerCase()))
+  const designationLine = lines.find((l) =>
+    jobKeywords.some((job) => l.toLowerCase().includes(job.toLowerCase()))
   );
   if (designationLine) {
     fields.designation = designationLine;
   }
 
   // --- Extract company ---
-  const companyLine = lines.find(l => companyKeywords.test(l));
+  const companyLine = lines.find((l) => companyKeywords.test(l));
   if (companyLine) {
     fields.company = companyLine;
   } else if (fields.email) {
@@ -755,10 +126,10 @@ function parseOCRText(text) {
 
   // --- Extract name ---
   const possibleNames = lines.filter(
-    l =>
+    (l) =>
       /^[A-Za-z .]{2,40}$/.test(l) &&
       l.split(" ").length <= 4 &&
-      !jobKeywords.some(job => l.toLowerCase().includes(job.toLowerCase())) &&
+      !jobKeywords.some((job) => l.toLowerCase().includes(job.toLowerCase())) &&
       !companyKeywords.test(l)
   );
   if (possibleNames.length) {
@@ -772,27 +143,39 @@ function parseOCRText(text) {
     fields.name = username
       .split(" ")
       .filter(Boolean)
-      .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
       .join(" ");
   }
 
   // --- Extract address ---
   const used = new Set(
-    [fields.name, fields.designation, fields.company, fields.email, fields.site, ...fields.emails, ...fields.sites, ...fields.numbers].filter(Boolean)
+    [
+      fields.name,
+      fields.designation,
+      fields.company,
+      fields.email,
+      fields.site,
+      ...fields.emails,
+      ...fields.sites,
+      ...fields.numbers,
+    ].filter(Boolean)
   );
-  const addressLines = lines.filter(l => ![...used].some(u => l.includes(u)));
+  const addressLines = lines.filter(
+    (l) => ![...used].some((u) => l.includes(u))
+  );
   if (addressLines.length) fields.address = addressLines.join(", ");
 
   return fields;
 }
-
 
 // --- OCR endpoint ---
 router.post("/scan", auth(), upload.single("image"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
 
-    const { data: { text } } = await Tesseract.recognize(req.file.buffer, "eng");
+    const {
+      data: { text },
+    } = await Tesseract.recognize(req.file.buffer, "eng");
 
     const parsed = parseOCRText(text);
 
@@ -810,13 +193,26 @@ router.post("/scan", auth(), upload.single("image"), async (req, res) => {
  */
 router.post("/save", auth(), async (req, res) => {
   try {
-    const { name, designation, company, number, email, site, address, event, type, raw } = req.body;
+    const {
+      name,
+      designation,
+      company,
+      number,
+      email,
+      site,
+      address,
+      event,
+      type,
+      raw,
+    } = req.body;
 
-    // ✅ Flexible duplicate check
+    //  Flexible duplicate check
     const query = [];
     if (email) query.push({ email });
     if (number) query.push({ number });
-    const exists = query.length ? await OCRresult.findOne({ $or: query }) : null;
+    const exists = query.length
+      ? await OCRresult.findOne({ $or: query })
+      : null;
 
     if (exists) {
       return res.status(400).json({ message: "Duplicate entry found" });
@@ -844,36 +240,7 @@ router.post("/save", auth(), async (req, res) => {
   }
 });
 
-/**
- * Fetch History
- */
-// router.get("/history", auth(), async (req, res) => {
-//   try {
-//     const docs = await OCRresult.find({ createdBy: req.user.id })
-//       .sort({ createdAt: -1 })
-//       .limit(50);
-//     res.json(docs);
-//   } catch (err) {
-//     console.error("History fetch error:", err.message);
-//     res.status(500).json({ message: "Server error" });
-//   }
-// });
 
-//08/09/2025
-
-// router.get("/history", auth(), async (req, res) => {
-//   try {
-//     const docs = await OCRresult.find({ createdBy: req.user.id })
-//   .populate("event", "name")
-//   .sort({ createdAt: 1 })  // sort only for this route
-//   .limit(50);
-
-//     res.json(docs);
-//   } catch (err) {
-//     console.error("History fetch error:", err.message);
-//     res.status(500).json({ message: "Server error" });
-//   }
-// });
 
 //08/09/2025
 router.get("/history", auth(), async (req, res) => {
@@ -886,7 +253,7 @@ router.get("/history", auth(), async (req, res) => {
 
     const docs = await OCRresult.find(query)
       .populate("event", "name")
-      .sort({ createdAt: 1 })  // ascending order
+      .sort({ createdAt: 1 }) // ascending order
       .limit(Number(limit) || 200);
 
     res.json(docs);
@@ -911,7 +278,7 @@ router.get("/export", auth(), async (req, res) => {
       .sort({ createdAt: 1 })
       .limit(Number(limit) || 200);
 
-      // res.json(docs);
+    // res.json(docs);
 
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("OCR Records");
@@ -928,7 +295,7 @@ router.get("/export", auth(), async (req, res) => {
       { header: "Email", key: "email", width: 25 },
       { header: "Website", key: "site", width: 25 },
       { header: "Address", key: "address", width: 30 },
-       { header: "Raw OCR Text", key: "raw", width: 50 },
+      { header: "Raw OCR Text", key: "raw", width: 50 },
     ];
 
     rows.forEach((r, index) => {
@@ -965,8 +332,6 @@ router.get("/export", auth(), async (req, res) => {
   }
 });
 
-
-
 /**
  * Get Single Record
  */
@@ -998,7 +363,9 @@ router.put("/update/:id", auth(), async (req, res) => {
     );
 
     if (!updated) {
-      return res.status(404).json({ message: "Record not found or not authorized" });
+      return res
+        .status(404)
+        .json({ message: "Record not found or not authorized" });
     }
 
     res.json(updated);
@@ -1020,7 +387,9 @@ router.delete("/delete/:id", auth(), async (req, res) => {
     });
 
     if (!deleted) {
-      return res.status(404).json({ message: "Record not found or not authorized" });
+      return res
+        .status(404)
+        .json({ message: "Record not found or not authorized" });
     }
 
     res.json({ message: "Deleted successfully" });
